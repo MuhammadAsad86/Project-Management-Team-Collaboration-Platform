@@ -5,6 +5,12 @@ import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
+import ProjectDetails from "./pages/ProjectDetails";
+import Tasks from "./pages/Tasks";
+import Teams from "./pages/Teams";
+import Calendar from "./pages/Calendar";
+import Profile from "./pages/Profile";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 
@@ -19,7 +25,7 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected + Role Based Routes */}
+      {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route
           element={
@@ -34,6 +40,15 @@ function App() {
         >
           <Route element={<MainLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route
+              path="/projects/:id"
+              element={<ProjectDetails />}
+            />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/teams" element={<Teams />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
       </Route>

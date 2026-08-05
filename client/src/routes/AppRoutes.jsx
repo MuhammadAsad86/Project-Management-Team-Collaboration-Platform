@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
+
+import ProtectedRoute from "../components/ProtectedRoute";
 
 import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/Dashboard";
@@ -14,24 +16,28 @@ import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectDetails />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
+    <Routes>
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:id" element={<ProjectDetails />} />
+        <Route path="/tasks" element={<Tasks />} />
+        <Route path="/teams" element={<Teams />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 

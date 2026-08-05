@@ -4,13 +4,14 @@ const taskSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: [true, "Task title is required"],
       trim: true,
     },
 
     description: {
       type: String,
       default: "",
+      trim: true,
     },
 
     project: {
@@ -19,7 +20,13 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
 
-    assignee: {
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

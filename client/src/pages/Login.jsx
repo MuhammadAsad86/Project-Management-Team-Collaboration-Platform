@@ -1,29 +1,34 @@
-import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-
-import Card from "../components/ui/Card";
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
-import api from "../services/api";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-  const onSubmit = async (data) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
     try {
-      const response = await api.post("/auth/login", data);
+      const data = await loginUser(formData);
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      login(data.user, data.token);
 
-      toast.success("Login successful!");
+      toast.success("Login successful");
 
       navigate("/");
     } catch (error) {
@@ -34,42 +39,40 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
-      <Card className="w-full max-w-md">
-        <h1 className="mb-6 text-center text-3xl font-bold text-gray-800">
+    <div className="min-h-screen flex items-center justify-center">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4"
+      >
+        <h1 className="text-2xl font-bold">Login</h1>
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+          required
+        />
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={formData.password}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+          required
+        />
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded"
+        >
           Login
-        </h1>
-
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Input
-            label="Email"
-            type="email"
-            placeholder="Enter your email"
-            error={errors.email?.message}
-            {...register("email", {
-              required: "Email is required",
-            })}
-          />
-
-          <Input
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            error={errors.password?.message}
-            {...register("password", {
-              required: "Password is required",
-            })}
-          />
-
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-2"
-          >
-            {isSubmitting ? "Logging in..." : "Login"}
-          </Button>
-        </form>
-      </Card>
+        </button>
+      </form>
     </div>
   );
 };
