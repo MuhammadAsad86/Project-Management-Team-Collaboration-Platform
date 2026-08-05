@@ -13,6 +13,7 @@ const {
   changeUserRole,
 } = require("../controllers/userController");
 
+
 // Create User
 router.post(
   "/",
@@ -21,13 +22,15 @@ router.post(
   createUser
 );
 
+
 // Get All Users
+// Admin + Project Manager + Team Member can view users
 router.get(
   "/",
   protect,
-  authorize("admin"),
   getUsers
 );
+
 
 // Get Single User
 router.get(
@@ -37,6 +40,7 @@ router.get(
   getUserById
 );
 
+
 // Update User
 router.put(
   "/:id",
@@ -44,6 +48,7 @@ router.put(
   authorize("admin"),
   updateUser
 );
+
 
 // Delete User
 router.delete(
@@ -53,6 +58,7 @@ router.delete(
   deleteUser
 );
 
+
 // Change User Role
 router.patch(
   "/:id/role",
@@ -60,5 +66,6 @@ router.patch(
   authorize("admin"),
   changeUserRole
 );
+
 
 module.exports = router;
