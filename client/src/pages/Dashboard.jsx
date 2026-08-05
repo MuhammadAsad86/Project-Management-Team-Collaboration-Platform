@@ -1,27 +1,34 @@
-import React from "react";
-import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
-import Input from "../components/ui/Input";
-import PageContainer from "../components/layout/PageContainer";
-import SectionHeader from "../components/common/SectionHeader";
 
 const Dashboard = () => {
   return (
-    <PageContainer>
-      <SectionHeader
-        title="Dashboard"
-        subtitle="Welcome to the Project Management Platform"
-      />
+    <div>
+      <h1 className="mb-6 text-3xl font-bold text-gray-800">
+        Dashboard
+      </h1>
 
-      <Card>
-        <Input
-          placeholder="Enter project name"
-          className="mb-4"
-        />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <h2 className="text-gray-500">Total Projects</h2>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </Card>
 
-        <Button>Get Started</Button>
-      </Card>
-    </PageContainer>
+        <Card>
+          <h2 className="text-gray-500">Total Tasks</h2>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </Card>
+
+        <Card>
+          <h2 className="text-gray-500">Team Members</h2>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </Card>
+
+        <Card>
+          <h2 className="text-gray-500">Completed Tasks</h2>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </Card>
+      </div>
+    </div>
   );
 };
 
