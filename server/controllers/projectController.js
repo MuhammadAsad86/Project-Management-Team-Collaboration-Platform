@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const User = require("../models/User");
 
 // Create Project
 const createProject = async (req, res) => {
@@ -12,6 +13,13 @@ const createProject = async (req, res) => {
       endDate,
       teamMembers,
     } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Project name is required",
+      });
+    }
 
     const project = await Project.create({
       name,
@@ -37,15 +45,74 @@ const createProject = async (req, res) => {
   }
 };
 
-// Get All Projects
+// Get All Projects (Search + Filter + Sorting + Pagination)
 const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({
+    const {
+      search,
+      status,
+      priority,
+      assignedManager,
+      sort,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const query = {
       projectManager: req.user.id,
-    }).populate("projectManager", "name email");
+    };
+
+    if (search) {
+      query.name = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+    if (assignedManager) query.assignedManager = assignedManager;
+
+    let sortOption = {};
+
+    switch (sort) {
+      case "name":
+        sortOption = { name: 1 };
+        break;
+      case "priority":
+        sortOption = { priority: 1 };
+        break;
+      case "startDate":
+        sortOption = { startDate: 1 };
+        break;
+      case "endDate":
+        sortOption = { endDate: 1 };
+        break;
+      default:
+        sortOption = { createdAt: -1 };
+    }
+
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+    const skip = (currentPage - 1) * perPage;
+
+    const totalRecords = await Project.countDocuments(query);
+
+    const projects = await Project.find(query)
+      .populate("projectManager", "name email")
+      .populate("assignedManager", "name email")
+      .populate("teamMembers", "name email role")
+      .sort(sortOption)
+      .skip(skip)
+      .limit(perPage);
 
     res.status(200).json({
       success: true,
+      totalRecords,
+      currentPage,
+      totalPages: Math.ceil(totalRecords / perPage),
+      hasNextPage: currentPage * perPage < totalRecords,
+      hasPreviousPage: currentPage > 1,
       count: projects.length,
       projects,
     });
@@ -63,7 +130,10 @@ const getProjectById = async (req, res) => {
     const project = await Project.findOne({
       _id: req.params.id,
       projectManager: req.user.id,
-    }).populate("projectManager", "name email");
+    })
+      .populate("projectManager", "name email")
+      .populate("assignedManager", "name email")
+      .populate("teamMembers", "name email role");
 
     if (!project) {
       return res.status(404).json({
@@ -119,6 +189,137 @@ const updateProject = async (req, res) => {
   }
 };
 
+// Assign Project Manager
+const assignProjectManager = async (req, res) => {
+  try {
+    const { managerId } = req.body;
+
+    const manager = await User.findById(managerId);
+
+    if (!manager) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (manager.role !== "project_manager") {
+      return res.status(400).json({
+        success: false,
+        message: "Selected user is not a Project Manager",
+      });
+    }
+
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    project.assignedManager = manager._id;
+
+    await project.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Project Manager assigned successfully",
+      project,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Manage Team Members
+const manageTeamMembers = async (req, res) => {
+  try {
+    const { memberIds } = req.body;
+
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    for (const memberId of memberIds) {
+      const user = await User.findById(memberId);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: `User not found: ${memberId}`,
+        });
+      }
+
+      if (user.role !== "team_member") {
+        return res.status(400).json({
+          success: false,
+          message: `${user.name} is not a Team Member`,
+        });
+      }
+
+      if (!project.teamMembers.includes(memberId)) {
+        project.teamMembers.push(memberId);
+      }
+    }
+
+    await project.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Team members updated successfully",
+      project,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Remove Team Member
+const removeTeamMember = async (req, res) => {
+  try {
+    const { memberId } = req.body;
+
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    project.teamMembers = project.teamMembers.filter(
+      (id) => id.toString() !== memberId
+    );
+
+    await project.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Team member removed successfully",
+      project,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // Delete Project
 const deleteProject = async (req, res) => {
   try {
@@ -151,5 +352,8 @@ module.exports = {
   getProjects,
   getProjectById,
   updateProject,
+  assignProjectManager,
+  manageTeamMembers,
+  removeTeamMember,
   deleteProject,
 };

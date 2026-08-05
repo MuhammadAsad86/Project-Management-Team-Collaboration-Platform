@@ -13,12 +13,21 @@ const projectSchema = new mongoose.Schema(
       default: "",
     },
 
+    // User who created the project
     projectManager: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
+    // Assigned Project Manager
+    assignedManager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // Team Members
     teamMembers: [
       {
         type: mongoose.Schema.Types.ObjectId,

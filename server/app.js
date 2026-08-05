@@ -4,9 +4,12 @@ const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const protect = require("./middleware/authMiddleware");
 const authorize = require("./middleware/roleMiddleware");
+const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
 
@@ -19,6 +22,8 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
 
 // Root Route
 app.get("/", (req, res) => {
@@ -40,5 +45,8 @@ app.get(
     });
   }
 );
+
+// Global Error Handler
+app.use(errorHandler);
 
 module.exports = app;
