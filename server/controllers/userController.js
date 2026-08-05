@@ -42,13 +42,82 @@ const createUser = async (req, res) => {
   }
 };
 
-// Get All Users
+// Get All Users (Search + Filter + Sorting + Pagination)
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const {
+      search,
+      role,
+      sort,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const query = {};
+
+    // Search
+    if (search) {
+      query.$or = [
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          email: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    // Filter
+    if (role) {
+      query.role = role;
+    }
+
+    // Sorting
+    let sortOption = {};
+
+    switch (sort) {
+      case "name":
+        sortOption = { name: 1 };
+        break;
+
+      case "email":
+        sortOption = { email: 1 };
+        break;
+
+      case "role":
+        sortOption = { role: 1 };
+        break;
+
+      default:
+        sortOption = { createdAt: -1 };
+    }
+
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+    const skip = (currentPage - 1) * perPage;
+
+    const totalRecords = await User.countDocuments(query);
+
+    const users = await User.find(query)
+      .select("-password")
+      .sort(sortOption)
+      .skip(skip)
+      .limit(perPage);
 
     res.status(200).json({
       success: true,
+      totalRecords,
+      currentPage,
+      totalPages: Math.ceil(totalRecords / perPage),
+      hasNextPage:
+        currentPage * perPage < totalRecords,
+      hasPreviousPage: currentPage > 1,
       count: users.length,
       users,
     });
@@ -63,7 +132,8 @@ const getUsers = async (req, res) => {
 // Get Single User
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id)
+      .select("-password");
 
     if (!user) {
       return res.status(404).json({
@@ -125,7 +195,9 @@ const updateUser = async (req, res) => {
 // Delete User
 const deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -151,7 +223,8 @@ const changeUserRole = async (req, res) => {
   try {
     const { role } = req.body;
 
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id)
+      .select("-password");
 
     if (!user) {
       return res.status(404).json({

@@ -5,6 +5,7 @@ import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Users from "./pages/Users";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import Tasks from "./pages/Tasks";
@@ -40,14 +41,27 @@ function App() {
         >
           <Route element={<MainLayout />}>
             <Route path="/" element={<Dashboard />} />
+
+            {/* Users */}
+            <Route path="/users" element={<Users />} />
+
+            {/* Projects */}
             <Route path="/projects" element={<Projects />} />
             <Route
               path="/projects/:id"
               element={<ProjectDetails />}
             />
+
+            {/* Tasks */}
             <Route path="/tasks" element={<Tasks />} />
+
+            {/* Teams */}
             <Route path="/teams" element={<Teams />} />
+
+            {/* Calendar */}
             <Route path="/calendar" element={<Calendar />} />
+
+            {/* Profile */}
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>

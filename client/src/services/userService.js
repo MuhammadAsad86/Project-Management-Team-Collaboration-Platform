@@ -1,8 +1,11 @@
 import axiosInstance from "../utils/axiosInstance";
 
 // Get All Users
-export const getUsers = async () => {
-  const response = await axiosInstance.get("/users");
+export const getUsers = async (params = {}) => {
+  const response = await axiosInstance.get("/users", {
+    params,
+  });
+
   return response.data;
 };
 
@@ -20,15 +23,20 @@ export const createUser = async (userData) => {
 
 // Update User
 export const updateUser = async (id, userData) => {
-  const response = await axiosInstance.put(`/users/${id}`, userData);
+  const response = await axiosInstance.put(
+    `/users/${id}`,
+    userData
+  );
+
   return response.data;
 };
 
 // Change User Role
 export const changeUserRole = async (id, role) => {
-  const response = await axiosInstance.patch(`/users/${id}/role`, {
-    role,
-  });
+  const response = await axiosInstance.patch(
+    `/users/${id}/role`,
+    { role }
+  );
 
   return response.data;
 };
