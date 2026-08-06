@@ -1,7 +1,10 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const Sidebar = () => {
-  const links = [
+  const { user } = useAuth();
+
+  const adminLinks = [
     { name: "Dashboard", path: "/" },
     { name: "Users", path: "/users" },
     { name: "Projects", path: "/projects" },
@@ -11,8 +14,32 @@ const Sidebar = () => {
     { name: "Profile", path: "/profile" },
   ];
 
+  const projectManagerLinks = [
+    { name: "Dashboard", path: "/pm-dashboard" },
+    { name: "Projects", path: "/projects" },
+    { name: "Tasks", path: "/tasks" },
+    { name: "Calendar", path: "/calendar" },
+    { name: "Profile", path: "/profile" },
+  ];
+
+  const teamMemberLinks = [
+    { name: "Tasks", path: "/tasks" },
+    { name: "Calendar", path: "/calendar" },
+    { name: "Profile", path: "/profile" },
+  ];
+
+  let links = [];
+
+  if (user?.role === "admin") {
+    links = adminLinks;
+  } else if (user?.role === "project_manager") {
+    links = projectManagerLinks;
+  } else if (user?.role === "team_member") {
+    links = teamMemberLinks;
+  }
+
   return (
-    <aside className="w-64 min-h-screen bg-slate-900 text-white">
+    <aside className="min-h-screen w-64 bg-slate-900 text-white">
       <div className="border-b border-slate-700 p-6">
         <h1 className="text-xl font-bold">
           Project Manager
@@ -24,7 +51,7 @@ const Sidebar = () => {
           <NavLink
             key={link.path}
             to={link.path}
-            end={link.path === "/"}
+            end={link.path === "/" || link.path === "/pm-dashboard"}
             className={({ isActive }) =>
               `block rounded-lg px-4 py-2 transition ${
                 isActive

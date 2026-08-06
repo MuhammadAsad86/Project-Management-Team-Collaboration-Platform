@@ -32,3 +32,57 @@ export const deleteProject = async (id) => {
   const response = await axiosInstance.delete(`/projects/${id}`);
   return response.data;
 };
+
+// =============================
+// Project Manager APIs
+// =============================
+
+// Get Assigned Projects
+export const getAssignedProjects = async () => {
+  const response = await axiosInstance.get(
+    "/projects/assigned"
+  );
+  return response.data;
+};
+
+// Get Project Statistics
+export const getProjectStats = async () => {
+  const response = await axiosInstance.get(
+    "/projects/stats"
+  );
+
+  return response.data;
+};
+
+
+// Add Project Member
+export const addProjectMember = async (id, memberId) => {
+  const response = await axiosInstance.patch(
+    `/projects/${id}/members`,
+    {
+      memberIds: [memberId],
+    }
+  );
+
+  return response.data;
+};
+// Remove Project Member
+export const removeProjectMember = async (id, memberId) => {
+  const response = await axiosInstance.patch(
+    `/projects/${id}/members/remove`,
+    {
+      memberId,
+    }
+  );
+
+  return response.data;
+};
+
+// Get Project Workspace
+export const getProjectWorkspace = async (id) => {
+  const response = await axiosInstance.get(
+    `/projects/${id}/workspace`
+  );
+
+  return response.data;
+};

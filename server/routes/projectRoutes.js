@@ -18,11 +18,14 @@ const {
   getProjectManagerStats,
 } = require("../controllers/projectController");
 
+
 // Create Project
 router.post("/", protect, createProject);
 
+
 // Get All Projects
 router.get("/", protect, getProjects);
+
 
 // Get Assigned Projects (Project Manager)
 router.get(
@@ -32,6 +35,7 @@ router.get(
   getAssignedProjects
 );
 
+
 // Project Manager Dashboard Stats
 router.get(
   "/stats",
@@ -39,6 +43,7 @@ router.get(
   authorize("project_manager"),
   getProjectManagerStats
 );
+
 
 // Get Project Workspace
 router.get(
@@ -48,11 +53,14 @@ router.get(
   getProjectWorkspace
 );
 
+
 // Get Single Project
 router.get("/:id", protect, getProjectById);
 
+
 // Update Project
 router.put("/:id", protect, updateProject);
+
 
 // Assign Project Manager (Admin Only)
 router.patch(
@@ -62,23 +70,27 @@ router.patch(
   assignProjectManager
 );
 
-// Add Team Members (Admin Only)
+
+// Add Team Members
 router.patch(
   "/:id/members",
   protect,
-  authorize("admin"),
+  authorize("admin", "project_manager"),
   manageTeamMembers
 );
 
-// Remove Team Member (Admin Only)
+
+// Remove Team Member
 router.patch(
   "/:id/members/remove",
   protect,
-  authorize("admin"),
+  authorize("admin", "project_manager"),
   removeTeamMember
 );
 
+
 // Delete Project
 router.delete("/:id", protect, deleteProject);
+
 
 module.exports = router;

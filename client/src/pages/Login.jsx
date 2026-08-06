@@ -30,7 +30,22 @@ const Login = () => {
 
       toast.success("Login successful");
 
-      navigate("/");
+      switch (data.user.role) {
+        case "admin":
+          navigate("/");
+          break;
+
+        case "project_manager":
+          navigate("/pm-dashboard");
+          break;
+
+        case "team_member":
+          navigate("/tasks");
+          break;
+
+        default:
+          navigate("/");
+      }
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Login failed"
@@ -39,12 +54,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4"
+        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg space-y-4"
       >
-        <h1 className="text-2xl font-bold">Login</h1>
+        <h1 className="text-center text-3xl font-bold">
+          Login
+        </h1>
 
         <input
           type="email"
@@ -52,7 +69,7 @@ const Login = () => {
           placeholder="Email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
+          className="w-full rounded border p-2"
           required
         />
 
@@ -62,13 +79,13 @@ const Login = () => {
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
+          className="w-full rounded border p-2"
           required
         />
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded"
+          className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700"
         >
           Login
         </button>

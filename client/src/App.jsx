@@ -5,6 +5,7 @@ import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import ProjectManagerDashboard from "./pages/ProjectManagerDashboard";
 import Users from "./pages/Users";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
@@ -40,7 +41,14 @@ function App() {
           }
         >
           <Route element={<MainLayout />}>
+            {/* Dashboard */}
             <Route path="/" element={<Dashboard />} />
+
+            {/* Project Manager Dashboard */}
+            <Route
+              path="/pm-dashboard"
+              element={<ProjectManagerDashboard />}
+            />
 
             {/* Users */}
             <Route path="/users" element={<Users />} />
