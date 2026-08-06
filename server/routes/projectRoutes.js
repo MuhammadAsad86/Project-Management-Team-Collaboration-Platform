@@ -13,6 +13,9 @@ const {
   manageTeamMembers,
   removeTeamMember,
   deleteProject,
+  getAssignedProjects,
+  getProjectWorkspace,
+  getProjectManagerStats,
 } = require("../controllers/projectController");
 
 // Create Project
@@ -20,6 +23,30 @@ router.post("/", protect, createProject);
 
 // Get All Projects
 router.get("/", protect, getProjects);
+
+// Get Assigned Projects (Project Manager)
+router.get(
+  "/assigned",
+  protect,
+  authorize("project_manager"),
+  getAssignedProjects
+);
+
+// Project Manager Dashboard Stats
+router.get(
+  "/stats",
+  protect,
+  authorize("project_manager"),
+  getProjectManagerStats
+);
+
+// Get Project Workspace
+router.get(
+  "/:id/workspace",
+  protect,
+  authorize("project_manager"),
+  getProjectWorkspace
+);
 
 // Get Single Project
 router.get("/:id", protect, getProjectById);

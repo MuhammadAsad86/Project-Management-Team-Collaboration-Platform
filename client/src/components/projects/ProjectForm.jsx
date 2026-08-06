@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getUsers } from "../../services/userService";
 
 const ProjectForm = ({ onSubmit, initialData = {}, loading = false }) => {
   const [formData, setFormData] = useState({
@@ -6,9 +7,33 @@ const ProjectForm = ({ onSubmit, initialData = {}, loading = false }) => {
     description: initialData.description || "",
     priority: initialData.priority || "medium",
     status: initialData.status || "pending",
-    startDate: initialData.startDate || "",
-    endDate: initialData.endDate || "",
+    assignedManager: initialData.assignedManager?._id || "",
+    startDate: initialData.startDate
+      ? initialData.startDate.substring(0, 10)
+      : "",
+    endDate: initialData.endDate
+      ? initialData.endDate.substring(0, 10)
+      : "",
   });
+
+  const [projectManagers, setProjectManagers] = useState([]);
+
+  useEffect(() => {
+    fetchProjectManagers();
+  }, []);
+
+  const fetchProjectManagers = async () => {
+    try {
+      const response = await getUsers({
+        role: "project_manager",
+        limit: 100,
+      });
+
+      setProjectManagers(response.users || []);
+    } catch (error) {
+      console.error("Project Managers Error:", error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -63,6 +88,21 @@ const ProjectForm = ({ onSubmit, initialData = {}, loading = false }) => {
         <option value="pending">Pending</option>
         <option value="active">Active</option>
         <option value="completed">Completed</option>
+      </select>
+
+      <select
+        name="assignedManager"
+        value={formData.assignedManager}
+        onChange={handleChange}
+        className="w-full rounded-lg border p-3"
+      >
+        <option value="">Select Project Manager</option>
+
+        {projectManagers.map((manager) => (
+          <option key={manager._id} value={manager._id}>
+            {manager.name} ({manager.email})
+          </option>
+        ))}
       </select>
 
       <input

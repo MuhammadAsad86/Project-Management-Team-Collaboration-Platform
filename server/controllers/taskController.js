@@ -31,6 +31,14 @@ const createTask = async (req, res) => {
       });
     }
 
+    // Only assigned Project Manager can create tasks
+    if (projectExists.assignedManager?.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not assigned to this project",
+      });
+    }
+
     const userExists = await User.findById(assignedTo);
 
     if (!userExists) {
@@ -79,7 +87,6 @@ const getTasks = async (req, res) => {
 
     const query = {};
 
-    // Search
     if (search) {
       query.title = {
         $regex: search,
@@ -87,20 +94,10 @@ const getTasks = async (req, res) => {
       };
     }
 
-    // Filters
-    if (status) {
-      query.status = status;
-    }
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+    if (assignedTo) query.assignedTo = assignedTo;
 
-    if (priority) {
-      query.priority = priority;
-    }
-
-    if (assignedTo) {
-      query.assignedTo = assignedTo;
-    }
-
-    // Sorting
     let sortOption = {};
 
     switch (sort) {
@@ -237,11 +234,107 @@ const deleteTask = async (req, res) => {
     });
   }
 };
+// Get Assigned Tasks (Team Member)
+const getAssignedTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find({
+      assignedTo: req.user.id,
+    })
+      .populate("project", "name")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
 
+    res.status(200).json({
+      success: true,
+      count: tasks.length,
+      tasks,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// Update Task Status (Team Member)
+const updateTaskStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const task = await Task.findOne({
+      _id: req.params.id,
+      assignedTo: req.user.id,
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    task.status = status;
+
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Task status updated successfully",
+      task,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// Team Member Dashboard Stats
+const getMyTaskStats = async (req, res) => {
+  try {
+    const totalTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+    });
+
+    const todoTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+      status: "todo",
+    });
+
+    const inProgressTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+      status: "in_progress",
+    });
+
+    const completedTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+      status: "completed",
+    });
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalTasks,
+        todoTasks,
+        inProgressTasks,
+        completedTasks,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 module.exports = {
   createTask,
   getTasks,
   getTaskById,
   updateTask,
   deleteTask,
+  getAssignedTasks,
+  updateTaskStatus,
+  getMyTaskStats,
 };

@@ -1,18 +1,20 @@
 const Project = require("../models/Project");
 const User = require("../models/User");
+const Task = require("../models/Task");
 
 // Create Project
 const createProject = async (req, res) => {
   try {
     const {
-      name,
-      description,
-      priority,
-      status,
-      startDate,
-      endDate,
-      teamMembers,
-    } = req.body;
+  name,
+  description,
+  priority,
+  status,
+  assignedManager,
+  startDate,
+  endDate,
+  teamMembers,
+} = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -21,16 +23,17 @@ const createProject = async (req, res) => {
       });
     }
 
-    const project = await Project.create({
-      name,
-      description,
-      priority,
-      status,
-      startDate,
-      endDate,
-      teamMembers,
-      projectManager: req.user.id,
-    });
+   const project = await Project.create({
+  name,
+  description,
+  priority,
+  status,
+  assignedManager,
+  startDate,
+  endDate,
+  teamMembers,
+  projectManager: req.user.id,
+});
 
     res.status(201).json({
       success: true,
@@ -347,6 +350,108 @@ const deleteProject = async (req, res) => {
   }
 };
 
+// Get Assigned Projects (Project Manager)
+const getAssignedProjects = async (req, res) => {
+  try {
+    const projects = await Project.find({
+      assignedManager: req.user.id,
+    })
+      .populate("projectManager", "name email")
+      .populate("assignedManager", "name email")
+      .populate("teamMembers", "name email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: projects.length,
+      projects,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// Get Project Workspace
+const getProjectWorkspace = async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      _id: req.params.id,
+      assignedManager: req.user.id,
+    })
+      .populate("projectManager", "name email")
+      .populate("assignedManager", "name email")
+      .populate("teamMembers", "name email role");
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const tasks = await Task.find({
+      project: project._id,
+    })
+      .populate("assignedTo", "name email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      project,
+      tasks,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+// Project Manager Dashboard Stats
+const getProjectManagerStats = async (req, res) => {
+  try {
+    const totalProjects = await Project.countDocuments({
+      assignedManager: req.user.id,
+    });
+
+    const activeProjects = await Project.countDocuments({
+      assignedManager: req.user.id,
+      status: "active",
+    });
+
+    const completedProjects = await Project.countDocuments({
+      assignedManager: req.user.id,
+      status: "completed",
+    });
+
+    const totalTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+    });
+
+    const completedTasks = await Task.countDocuments({
+      assignedTo: req.user.id,
+      status: "completed",
+    });
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalProjects,
+        activeProjects,
+        completedProjects,
+        totalTasks,
+        completedTasks,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 module.exports = {
   createProject,
   getProjects,
@@ -356,4 +461,7 @@ module.exports = {
   manageTeamMembers,
   removeTeamMember,
   deleteProject,
+  getAssignedProjects,
+  getProjectWorkspace,
+  getProjectManagerStats,
 };
