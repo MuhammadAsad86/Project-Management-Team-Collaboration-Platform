@@ -3,6 +3,7 @@ import axiosInstance from "../utils/axiosInstance";
 
 // Get All Tasks
 export const getTasks = async (params = {}) => {
+
   const response = await axiosInstance.get("/tasks", {
     params,
   });
@@ -11,8 +12,10 @@ export const getTasks = async (params = {}) => {
 };
 
 
+
 // Get Single Task
 export const getTaskById = async (id) => {
+
   const response = await axiosInstance.get(
     `/tasks/${id}`
   );
@@ -21,8 +24,10 @@ export const getTaskById = async (id) => {
 };
 
 
+
 // Create Task
 export const createTask = async (taskData) => {
+
   const response = await axiosInstance.post(
     "/tasks",
     taskData
@@ -32,11 +37,13 @@ export const createTask = async (taskData) => {
 };
 
 
+
 // Update Task
 export const updateTask = async (
   id,
   taskData
 ) => {
+
   const response = await axiosInstance.put(
     `/tasks/${id}`,
     taskData
@@ -46,10 +53,30 @@ export const updateTask = async (
 };
 
 
+
 // Delete Task
 export const deleteTask = async (id) => {
+
   const response = await axiosInstance.delete(
     `/tasks/${id}`
+  );
+
+  return response.data;
+};
+
+
+
+// Update Task Status (Team Member)
+export const updateTaskStatus = async (
+  id,
+  status
+) => {
+
+  const response = await axiosInstance.patch(
+    `/tasks/${id}/status`,
+    {
+      status,
+    }
   );
 
   return response.data;

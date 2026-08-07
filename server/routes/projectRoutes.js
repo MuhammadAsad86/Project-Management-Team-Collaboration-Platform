@@ -49,7 +49,7 @@ router.get(
 router.get(
   "/:id/workspace",
   protect,
-  authorize("project_manager"),
+  authorize("admin", "project_manager"),
   getProjectWorkspace
 );
 

@@ -31,13 +31,22 @@ const createTask = async (req, res) => {
       });
     }
 
-    // Only assigned Project Manager can create tasks
-    if (projectExists.assignedManager?.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not assigned to this project",
-      });
-    }
+   // Authorization:
+// Admin can create task on any project
+// Assigned Project Manager can create task on their project
+
+const isAdmin = req.user.role === "admin";
+
+const isAssignedManager =
+  projectExists.assignedManager?.toString() === req.user.id;
+
+
+if (!isAdmin && !isAssignedManager) {
+  return res.status(403).json({
+    success: false,
+    message: "You are not assigned to this project",
+  });
+}
 
     const userExists = await User.findById(assignedTo);
 
@@ -84,8 +93,19 @@ const getTasks = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
+let query = {};
 
-    const query = {};
+if (req.user.role === "team_member") {
+  query.assignedTo = req.user.id;
+} else if (req.user.role === "project_manager") {
+  const projects = await Project.find({
+    assignedManager: req.user.id,
+  }).select("_id");
+
+  query.project = {
+    $in: projects.map((p) => p._id),
+  };
+}
 
     if (search) {
       query.title = {
@@ -96,7 +116,9 @@ const getTasks = async (req, res) => {
 
     if (status) query.status = status;
     if (priority) query.priority = priority;
-    if (assignedTo) query.assignedTo = assignedTo;
+   if (assignedTo && req.user.role === "admin") {
+  query.assignedTo = assignedTo;
+}
 
     let sortOption = {};
 
@@ -124,7 +146,7 @@ const getTasks = async (req, res) => {
     const totalRecords = await Task.countDocuments(query);
 
     const tasks = await Task.find(query)
-      .populate("project", "name")
+      .populate("project", "name assignedManager")
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email")
       .sort(sortOption)
@@ -153,16 +175,27 @@ const getTasks = async (req, res) => {
 const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("project", "name")
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email");
+  .populate("project", "name assignedManager")
+  .populate("assignedTo", "name email role")
+  .populate("createdBy", "name email");
 
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "Task not found",
-      });
-    }
+if (!task) {
+  return res.status(404).json({
+    success: false,
+    message: "Task not found",
+  });
+}
+
+if (
+  req.user.role !== "admin" &&
+  task.assignedTo._id.toString() !== req.user.id &&
+  task.project.assignedManager?.toString() !== req.user.id
+) {
+  return res.status(403).json({
+    success: false,
+    message: "Access denied",
+  });
+}
 
     res.status(200).json({
       success: true,
@@ -179,15 +212,8 @@ const getTaskById = async (req, res) => {
 // Update Task
 const updateTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .populate("project", "name")
+    const task = await Task.findById(req.params.id)
+      .populate("project", "name assignedManager")
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email");
 
@@ -197,6 +223,22 @@ const updateTask = async (req, res) => {
         message: "Task not found",
       });
     }
+
+    // Authorization Check
+    if (
+      req.user.role !== "admin" &&
+      task.assignedTo._id.toString() !== req.user.id &&
+      task.project.assignedManager?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
+
+    Object.assign(task, req.body);
+
+    await task.save();
 
     res.status(200).json({
       success: true,
@@ -214,7 +256,9 @@ const updateTask = async (req, res) => {
 // Delete Task
 const deleteTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findById(req.params.id)
+      .populate("project", "name assignedManager")
+      .populate("assignedTo", "name email role");
 
     if (!task) {
       return res.status(404).json({
@@ -222,6 +266,20 @@ const deleteTask = async (req, res) => {
         message: "Task not found",
       });
     }
+
+    // Authorization Check
+    if (
+      req.user.role !== "admin" &&
+      task.assignedTo._id.toString() !== req.user.id &&
+      task.project.assignedManager?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
+
+    await task.deleteOne();
 
     res.status(200).json({
       success: true,

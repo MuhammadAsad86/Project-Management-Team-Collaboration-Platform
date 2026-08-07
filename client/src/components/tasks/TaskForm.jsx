@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { getProjects } from "../../services/projectService";
 import { getUsers } from "../../services/userService";
 
-
 const TaskForm = ({
   onSubmit,
   loading = false,
@@ -15,7 +14,6 @@ const TaskForm = ({
 
 
   const [formData, setFormData] = useState({
-
     title: initialData.title || "",
 
     description:
@@ -39,8 +37,50 @@ const TaskForm = ({
 
     dueDate:
       initialData.dueDate || "",
-
   });
+
+
+  // Update form when editing task
+  useEffect(() => {
+
+    setFormData({
+
+      title:
+        initialData.title || "",
+
+
+      description:
+        initialData.description || "",
+
+
+      project:
+        initialData.project?._id ||
+        initialData.project ||
+        "",
+
+
+      assignedTo:
+        initialData.assignedTo?._id ||
+        initialData.assignedTo ||
+        "",
+
+
+      priority:
+        initialData.priority || "medium",
+
+
+      status:
+        initialData.status || "todo",
+
+
+      dueDate:
+        initialData.dueDate
+          ? initialData.dueDate.split("T")[0]
+          : "",
+
+    });
+
+  }, [initialData]);
 
 
 
@@ -49,7 +89,6 @@ const TaskForm = ({
 
     const fetchData = async () => {
 
-      // Load Projects
       try {
 
         const projectResponse =
@@ -72,7 +111,6 @@ const TaskForm = ({
 
 
 
-      // Load Users separately
       try {
 
         const userResponse =
@@ -102,7 +140,6 @@ const TaskForm = ({
 
 
 
-
   const handleChange = (e) => {
 
     setFormData({
@@ -118,7 +155,6 @@ const TaskForm = ({
 
 
 
-
   const handleSubmit = (e) => {
 
     e.preventDefault();
@@ -126,7 +162,6 @@ const TaskForm = ({
     onSubmit(formData);
 
   };
-
 
 
 
@@ -175,24 +210,20 @@ const TaskForm = ({
         </option>
 
 
-        {
-          projects.map((project) => (
+        {projects.map((project) => (
 
-            <option
-              key={project._id}
-              value={project._id}
-            >
+          <option
+            key={project._id}
+            value={project._id}
+          >
 
-              {project.name}
+            {project.name}
 
-            </option>
+          </option>
 
-          ))
-        }
-
+        ))}
 
       </select>
-
 
 
 
@@ -211,26 +242,24 @@ const TaskForm = ({
         </option>
 
 
-        {
-          users.map((user) => (
+        {users.map((user) => (
 
-            <option
-              key={user._id}
-              value={user._id}
-            >
+          <option
+            key={user._id}
+            value={user._id}
+          >
 
-              {user.name}
+            {user.name}
 
-            </option>
+          </option>
 
-          ))
-        }
-
+        ))}
 
       </select>
 
 
 
+      {/* Priority */}
 
       <select
         name="priority"
@@ -251,11 +280,11 @@ const TaskForm = ({
           High
         </option>
 
-
       </select>
 
 
 
+      {/* Status */}
 
       <select
         name="status"
@@ -276,9 +305,7 @@ const TaskForm = ({
           Completed
         </option>
 
-
       </select>
-
 
 
 
@@ -292,7 +319,6 @@ const TaskForm = ({
 
 
 
-
       <button
         type="submit"
         disabled={loading}
@@ -301,8 +327,10 @@ const TaskForm = ({
 
         {
           loading
-          ? "Saving..."
-          : "Save Task"
+            ? "Saving..."
+            : initialData._id
+              ? "Update Task"
+              : "Save Task"
         }
 
       </button>
@@ -313,6 +341,5 @@ const TaskForm = ({
   );
 
 };
-
 
 export default TaskForm;

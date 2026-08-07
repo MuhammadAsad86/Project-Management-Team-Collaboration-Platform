@@ -15,14 +15,13 @@ const {
   getMyTaskStats,
 } = require("../controllers/taskController");
 
-// Create Task (Project Manager Only)
+// Create Task (Admin + Project Manager)
 router.post(
   "/",
   protect,
-  authorize("project_manager"),
+  authorize("admin", "project_manager"),
   createTask
 );
-
 // Get All Tasks
 router.get("/", protect, getTasks);
 

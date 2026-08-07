@@ -25,11 +25,14 @@ const ProjectDetails = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [addingMember, setAddingMember] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     const fetchProject = async () => {
       try {
         const data = await getProjectById(id);
+            console.log("fetchProject response:", data);
+    console.log("fetchProject tasks:", data.tasks);
 
         setProject(data.project);
         setTasks(data.tasks || []);
@@ -73,6 +76,7 @@ const ProjectDetails = () => {
   const fetchWorkspace = async () => {
     try {
       const data = await getProjectWorkspace(id);
+      
 
       setWorkspace(data);
 
@@ -135,6 +139,14 @@ const ProjectDetails = () => {
     );
   }
 
+  const totalTasks = workspace?.statistics?.totalTasks ?? 0;
+const completedTasks = workspace?.statistics?.completedTasks ?? 0;
+
+const progressPercentage =
+  totalTasks === 0
+    ? 0
+    : Math.round((completedTasks / totalTasks) * 100);
+    console.log("Tasks State:", tasks);
 
   return (
     <div className="space-y-6">
@@ -196,24 +208,52 @@ const ProjectDetails = () => {
       <div className="rounded-lg bg-white p-4 shadow">
 
         <div className="flex flex-wrap gap-3 border-b pb-3">
-
-          <button className="rounded bg-blue-600 px-4 py-2 text-white">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`rounded px-4 py-2 ${activeTab === "overview"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+              }`}
+          >
             Overview
           </button>
 
-          <button className="rounded bg-gray-200 px-4 py-2">
+          <button
+            onClick={() => setActiveTab("tasks")}
+            className={`rounded px-4 py-2 ${activeTab === "tasks"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+              }`}
+          >
             Tasks
           </button>
 
-          <button className="rounded bg-gray-200 px-4 py-2">
+          <button
+            onClick={() => setActiveTab("members")}
+            className={`rounded px-4 py-2 ${activeTab === "members"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+              }`}
+          >
             Members
           </button>
-
-          <button className="rounded bg-gray-200 px-4 py-2">
+          <button
+            onClick={() => setActiveTab("discussion")}
+            className={`rounded px-4 py-2 ${activeTab === "discussion"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+              }`}
+          >
             Discussion
           </button>
 
-          <button className="rounded bg-gray-200 px-4 py-2">
+          <button
+            onClick={() => setActiveTab("progress")}
+            className={`rounded px-4 py-2 ${activeTab === "progress"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200"
+              }`}
+          >
             Progress
           </button>
 
@@ -223,111 +263,94 @@ const ProjectDetails = () => {
 
 
       {/* Project Overview */}
-      <div className="rounded-lg bg-white p-6 shadow">
+{activeTab === "overview" && (
+  <>
+    <div className="rounded-lg bg-white p-6 shadow">
+      <h2 className="mb-4 text-2xl font-bold">
+        Project Overview
+      </h2>
 
-        <h2 className="mb-4 text-2xl font-bold">
-          Project Overview
-        </h2>
-
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Project Name
-            </p>
-            <p className="font-semibold">
-              {project.name}
-            </p>
-          </div>
-
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Status
-            </p>
-            <p className="font-semibold capitalize">
-              {project.status}
-            </p>
-          </div>
-
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Priority
-            </p>
-            <p className="font-semibold capitalize">
-              {project.priority}
-            </p>
-          </div>
-
-
-          <div>
-            <p className="text-sm text-gray-500">
-              Total Tasks
-            </p>
-            <p className="font-semibold">
-              {tasks.length}
-            </p>
-          </div>
-
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <p className="text-sm text-gray-500">
+            Project Name
+          </p>
+          <p className="font-semibold">
+            {project.name}
+          </p>
         </div>
 
-      </div>
-
-      {/* Workspace Statistics */}
-      <div className="rounded-lg bg-white p-6 shadow">
-
-        <h2 className="mb-4 text-2xl font-bold">
-          Workspace Statistics
-        </h2>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-
-          <div className="rounded border p-4 text-center">
-            <p className="text-sm text-gray-500">
-              Total Tasks
-            </p>
-
-            <p className="text-2xl font-bold">
-              {workspace?.statistics?.totalTasks ?? 0}
-            </p>
-          </div>
-
-          <div className="rounded border p-4 text-center">
-            <p className="text-sm text-gray-500">
-              Completed
-            </p>
-
-            <p className="text-2xl font-bold text-green-600">
-              {workspace?.statistics?.completedTasks ?? 0}
-            </p>
-          </div>
-
-          <div className="rounded border p-4 text-center">
-            <p className="text-sm text-gray-500">
-              In Progress
-            </p>
-
-            <p className="text-2xl font-bold text-yellow-600">
-              {workspace?.statistics?.inProgressTasks ?? 0}
-            </p>
-          </div>
-
-          <div className="rounded border p-4 text-center">
-            <p className="text-sm text-gray-500">
-              Pending
-            </p>
-
-            <p className="text-2xl font-bold text-red-600">
-              {workspace?.statistics?.pendingTasks ?? 0}
-            </p>
-          </div>
-
+        <div>
+          <p className="text-sm text-gray-500">
+            Status
+          </p>
+          <p className="font-semibold capitalize">
+            {project.status}
+          </p>
         </div>
 
+        <div>
+          <p className="text-sm text-gray-500">
+            Priority
+          </p>
+          <p className="font-semibold capitalize">
+            {project.priority}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-sm text-gray-500">
+            Total Tasks
+          </p>
+          <p className="font-semibold">
+            {tasks.length}
+          </p>
+        </div>
       </div>
+    </div>
+      
+
+        {/* Workspace Statistics */}
+    <div className="rounded-lg bg-white p-6 shadow">
+      <h2 className="mb-4 text-2xl font-bold">
+        Workspace Statistics
+      </h2>
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="rounded border p-4 text-center">
+          <p className="text-sm text-gray-500">Total Tasks</p>
+          <p className="text-2xl font-bold">
+            {workspace?.statistics?.totalTasks ?? 0}
+          </p>
+        </div>
+
+        <div className="rounded border p-4 text-center">
+          <p className="text-sm text-gray-500">Completed</p>
+          <p className="text-2xl font-bold text-green-600">
+            {workspace?.statistics?.completedTasks ?? 0}
+          </p>
+        </div>
+
+        <div className="rounded border p-4 text-center">
+          <p className="text-sm text-gray-500">In Progress</p>
+          <p className="text-2xl font-bold text-yellow-600">
+            {workspace?.statistics?.inProgressTasks ?? 0}
+          </p>
+        </div>
+
+        <div className="rounded border p-4 text-center">
+          <p className="text-sm text-gray-500">Pending</p>
+          <p className="text-2xl font-bold text-red-600">
+            {workspace?.statistics?.pendingTasks ?? 0}
+          </p>
+        </div>
+      </div>
+    </div>
+  </>
+)}
+     
       {/* Team Members */}
+      {activeTab === "members" && (
       <div className="rounded-lg bg-white p-6 shadow">
 
         <h2 className="mb-4 text-2xl font-bold">
@@ -405,9 +428,11 @@ const ProjectDetails = () => {
         )}
 
       </div>
+      )}
 
 
       {/* Project Tasks */}
+      {activeTab === "tasks" && (
       <div className="rounded-lg bg-white p-6 shadow">
 
         <h2 className="mb-4 text-2xl font-bold">
@@ -443,8 +468,82 @@ const ProjectDetails = () => {
         )}
 
       </div>
+)}
+{activeTab === "discussion" && (
+  <div className="rounded-lg bg-white p-6 shadow">
+    <h2 className="mb-4 text-2xl font-bold">
+      Discussion
+    </h2>
 
+    <p className="text-gray-500">
+      Discussion feature coming soon.
+    </p>
+  </div>
+)}
+{activeTab === "progress" && (
+  <div className="rounded-lg bg-white p-6 shadow">
+    <h2 className="mb-6 text-2xl font-bold">
+      Project Progress
+    </h2>
 
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="rounded border p-4 text-center">
+        <p className="text-sm text-gray-500">
+          Total Tasks
+        </p>
+        <p className="text-2xl font-bold">
+          {totalTasks}
+        </p>
+      </div>
+
+      <div className="rounded border p-4 text-center">
+        <p className="text-sm text-gray-500">
+          Completed
+        </p>
+        <p className="text-2xl font-bold text-green-600">
+          {completedTasks}
+        </p>
+      </div>
+
+      <div className="rounded border p-4 text-center">
+        <p className="text-sm text-gray-500">
+          In Progress
+        </p>
+        <p className="text-2xl font-bold text-yellow-600">
+          {workspace?.statistics?.inProgressTasks ?? 0}
+        </p>
+      </div>
+
+      <div className="rounded border p-4 text-center">
+        <p className="text-sm text-gray-500">
+          Pending
+        </p>
+        <p className="text-2xl font-bold text-red-600">
+          {workspace?.statistics?.pendingTasks ?? 0}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-8">
+      <div className="mb-2 flex justify-between">
+        <span className="font-medium">
+          Overall Progress
+        </span>
+
+        <span className="font-semibold">
+          {progressPercentage}%
+        </span>
+      </div>
+
+      <div className="h-3 w-full rounded-full bg-gray-200">
+        <div
+          className="h-3 rounded-full bg-green-600 transition-all duration-300"
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+    </div>
+  </div>
+)}
       {/* Add Member Modal */}
       {showMemberModal && (
 
@@ -561,6 +660,7 @@ const ProjectDetails = () => {
                     setSearch("");
 
                     const data = await getProjectById(id);
+                    
 
                     setProject(data.project);
                     setTasks(data.tasks || []);

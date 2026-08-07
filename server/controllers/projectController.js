@@ -179,10 +179,9 @@ const getProjects = async (req, res) => {
 };
 
 // Get Single Project
+// Get Single Project
 const getProjectById = async (req, res) => {
   try {
-    // Fetch by ID first so we can authorize based on role
-    // (Admin / assignedManager / projectManager).
     const project = await Project.findById(req.params.id)
       .populate("projectManager", "name email")
       .populate("assignedManager", "name email")
@@ -195,13 +194,15 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    // Authorization: Admin can view any project. The creator
-    // (projectManager) and the assigned Project Manager can also view it.
+    // Authorization
     const isAdmin = req.user.role === "admin";
+
     const isProjectManager =
       project.projectManager?._id?.toString() === req.user.id;
+
     const isAssignedManager =
       project.assignedManager?._id?.toString() === req.user.id;
+
 
     if (!isAdmin && !isProjectManager && !isAssignedManager) {
       return res.status(403).json({
@@ -210,10 +211,22 @@ const getProjectById = async (req, res) => {
       });
     }
 
+
+    // Get project tasks
+    const tasks = await Task.find({
+      project: project._id,
+    })
+      .populate("assignedTo", "name email role")
+      .sort({ createdAt: -1 });
+
+
     res.status(200).json({
       success: true,
       project,
+      tasks,
     });
+
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -221,6 +234,7 @@ const getProjectById = async (req, res) => {
     });
   }
 };
+    
 
 // Update Project
 const updateProject = async (req, res) => {
@@ -552,8 +566,6 @@ const getAssignedProjects = async (req, res) => {
 // Get Project Workspace
 const getProjectWorkspace = async (req, res) => {
   try {
-    // Fetch by ID first so we can authorize based on role
-    // (Admin / projectManager / assignedManager).
     const project = await Project.findById(req.params.id)
       .populate("projectManager", "name email")
       .populate("assignedManager", "name email")
@@ -566,8 +578,6 @@ const getProjectWorkspace = async (req, res) => {
       });
     }
 
-    // Authorization: Admin can view any workspace. The creator
-    // (projectManager) and the assigned Project Manager can also view it.
     const isAdmin = req.user.role === "admin";
     const isProjectManager =
       project.projectManager?._id?.toString() === req.user.id;
@@ -587,12 +597,34 @@ const getProjectWorkspace = async (req, res) => {
       .populate("assignedTo", "name email role")
       .sort({ createdAt: -1 });
 
+    const totalTasks = tasks.length;
+
+    const completedTasks = tasks.filter(
+      (task) => task.status === "completed"
+    ).length;
+
+    const inProgressTasks = tasks.filter(
+      (task) => task.status === "in_progress"
+    ).length;
+
+    const pendingTasks = tasks.filter(
+      (task) =>
+        task.status === "todo" ||
+        task.status === "pending"
+    ).length;
+
     res.status(200).json({
       success: true,
       project,
       tasks,
+      statistics: {
+        totalTasks,
+        completedTasks,
+        inProgressTasks,
+        pendingTasks,
+      },
     });
-  } catch (error) {
+  } catch (error) {                          // ✅ catch block add kiya
     res.status(500).json({
       success: false,
       message: error.message,

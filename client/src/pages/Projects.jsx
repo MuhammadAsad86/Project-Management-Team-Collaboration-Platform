@@ -8,6 +8,7 @@ import {
   deleteProject,
 } from "../services/projectService";
 
+import { useNavigate } from "react-router-dom";
 import CreateProjectModal from "../components/projects/CreateProjectModal";
 import ProjectFilters from "../components/projects/ProjectFilters";
 
@@ -23,6 +24,7 @@ const Projects = () => {
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -199,23 +201,39 @@ const Projects = () => {
       ) : (
         <div className="space-y-4">
           {projects.map((project) => (
-            <div key={project._id} className="rounded-lg bg-white p-5 shadow">
+            <div
+              key={project._id}
+              onClick={() => navigate(`/projects/${project._id}`)}
+              className="cursor-pointer rounded-lg bg-white p-5 shadow"
+            >
               <h2 className="text-xl font-semibold">{project.name}</h2>
 
               <p>{project.description}</p>
 
               <div className="mt-3 flex gap-5 text-sm">
                 <span>Status: {project.status}</span>
-
                 <span>Priority: {project.priority}</span>
               </div>
 
               <div className="mt-4 flex gap-3">
+                {/* View Overview */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/projects/${project._id}`);
+                  }}
+                  className="bg-blue-600 px-4 py-2 text-white"
+                >
+                  View Overview
+                </button>
+
+                {/* Edit */}
                 {(isAdmin ||
                   project.assignedManager?._id === currentUserId ||
                   project.assignedManager === currentUserId) && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedProject(project);
                       setShowEditModal(true);
                     }}
@@ -225,9 +243,13 @@ const Projects = () => {
                   </button>
                 )}
 
+                {/* Delete */}
                 {isAdmin && (
                   <button
-                    onClick={() => handleDeleteProject(project._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(project._id);
+                    }}
                     className="bg-red-600 px-4 py-2 text-white"
                   >
                     Delete
