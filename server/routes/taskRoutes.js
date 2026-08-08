@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const protect = require("../middleware/authMiddleware");
@@ -15,17 +16,26 @@ const {
   getMyTaskStats,
 } = require("../controllers/taskController");
 
-// Create Task (Admin + Project Manager)
+// Create Task
+// Admin + Project Manager
 router.post(
   "/",
   protect,
   authorize("admin", "project_manager"),
   createTask
 );
-// Get All Tasks
-router.get("/", protect, getTasks);
 
-// Get Assigned Tasks (Team Member Only)
+// Get All Tasks
+// Admin + Project Manager
+router.get(
+  "/",
+  protect,
+  authorize("admin", "project_manager"),
+  getTasks
+);
+
+// Get Assigned Tasks
+// Team Member only
 router.get(
   "/assigned",
   protect,
@@ -42,12 +52,24 @@ router.get(
 );
 
 // Get Single Task
-router.get("/:id", protect, getTaskById);
+// Controller performs ownership/project authorization
+router.get(
+  "/:id",
+  protect,
+  getTaskById
+);
 
-// Update Task (General)
-router.put("/:id", protect, updateTask);
+// Update Task
+// Controller allows Admin + assigned PM
+router.put(
+  "/:id",
+  protect,
+  authorize("admin", "project_manager"),
+  updateTask
+);
 
-// Update Task Status (Team Member Only)
+// Update Task Status
+// Team Member only
 router.patch(
   "/:id/status",
   protect,
@@ -56,6 +78,12 @@ router.patch(
 );
 
 // Delete Task
-router.delete("/:id", protect, deleteTask);
+// Controller allows Admin + assigned PM
+router.delete(
+  "/:id",
+  protect,
+  authorize("admin", "project_manager"),
+  deleteTask
+);
 
 module.exports = router;

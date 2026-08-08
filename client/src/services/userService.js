@@ -12,16 +12,21 @@ export const getUsers = async (params = {}) => {
 // Get Single User
 export const getUserById = async (id) => {
   const response = await axiosInstance.get(`/users/${id}`);
+
   return response.data;
 };
 
 // Create User
 export const createUser = async (userData) => {
-  const response = await axiosInstance.post("/users", userData);
+  const response = await axiosInstance.post(
+    "/users",
+    userData
+  );
+
   return response.data;
 };
 
-// Update User
+// Update User (Admin)
 export const updateUser = async (id, userData) => {
   const response = await axiosInstance.put(
     `/users/${id}`,
@@ -31,7 +36,26 @@ export const updateUser = async (id, userData) => {
   return response.data;
 };
 
-// Change User Role
+// Update My Profile
+export const updateMyProfile = async (userData) => {
+  const response = await axiosInstance.put(
+    "/users/me",
+    userData
+  );
+
+  return response.data;
+};
+
+// Change My Password
+export const changeMyPassword = async (passwordData) => {
+  const response = await axiosInstance.put(
+    "/users/me/password",
+    passwordData
+  );
+
+  return response.data;
+};
+// Change User Role (Admin)
 export const changeUserRole = async (id, role) => {
   const response = await axiosInstance.patch(
     `/users/${id}/role`,
@@ -41,8 +65,11 @@ export const changeUserRole = async (id, role) => {
   return response.data;
 };
 
-// Delete User
+// Delete User (Admin)
 export const deleteUser = async (id) => {
-  const response = await axiosInstance.delete(`/users/${id}`);
+  const response = await axiosInstance.delete(
+    `/users/${id}`
+  );
+
   return response.data;
 };

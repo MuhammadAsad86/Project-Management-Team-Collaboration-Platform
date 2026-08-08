@@ -49,18 +49,17 @@ router.get(
 router.get(
   "/:id/workspace",
   protect,
-  authorize("admin", "project_manager"),
+  authorize("admin", "project_manager", "team_member"),
   getProjectWorkspace
 );
 
 // Get Single Project
 router.get("/:id", protect, getProjectById);
 
-// Update Project (Admin Only)
 router.put(
   "/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "project_manager"),
   updateProject
 );
 

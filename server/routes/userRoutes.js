@@ -11,6 +11,8 @@ const {
   updateUser,
   deleteUser,
   changeUserRole,
+  updateMyProfile,
+  changeMyPassword,
 } = require("../controllers/userController");
 
 
@@ -31,7 +33,19 @@ router.get(
   getUsers
 );
 
+// Update My Profile
+router.put(
+  "/me",
+  protect,
+  updateMyProfile
+);
 
+// Change My Password
+router.put(
+  "/me/password",
+  protect,
+  changeMyPassword
+);
 // Get Single User
 router.get(
   "/:id",

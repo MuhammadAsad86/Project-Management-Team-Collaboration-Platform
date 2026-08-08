@@ -40,7 +40,7 @@ const Login = () => {
           break;
 
         case "team_member":
-          navigate("/tasks");
+          navigate("/team-member-dashboard");
           break;
 
         default:
@@ -48,21 +48,17 @@ const Login = () => {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Login failed"
+        error.response?.data?.message ||
+          "Login failed"
       );
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg space-y-4"
-      >
-        <h1 className="text-center text-3xl font-bold">
-          Login
-        </h1>
+    <div>
+      <h1>Login</h1>
 
+      <form onSubmit={handleSubmit}>
         <input
           type="email"
           name="email"

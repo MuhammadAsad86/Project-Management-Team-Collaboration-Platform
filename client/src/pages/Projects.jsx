@@ -206,14 +206,50 @@ const Projects = () => {
               onClick={() => navigate(`/projects/${project._id}`)}
               className="cursor-pointer rounded-lg bg-white p-5 shadow"
             >
-              <h2 className="text-xl font-semibold">{project.name}</h2>
+             <h2 className="text-xl font-semibold">
+  {project.name}
+</h2>
 
-              <p>{project.description}</p>
+<p className="mt-1 text-gray-600">
+  {project.description || "No description"}
+</p>
 
-              <div className="mt-3 flex gap-5 text-sm">
-                <span>Status: {project.status}</span>
-                <span>Priority: {project.priority}</span>
-              </div>
+<div className="mt-4 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+  <span>
+    <strong>Status:</strong>{" "}
+    <span className="capitalize">
+      {project.status}
+    </span>
+  </span>
+
+  <span>
+    <strong>Priority:</strong>{" "}
+    <span className="capitalize">
+      {project.priority}
+    </span>
+  </span>
+
+  <span>
+    <strong>Start Date:</strong>{" "}
+    {project.startDate
+      ? new Date(project.startDate).toLocaleDateString()
+      : "Not set"}
+  </span>
+
+  <span>
+    <strong>End Date:</strong>{" "}
+    {project.endDate
+      ? new Date(project.endDate).toLocaleDateString()
+      : "Not set"}
+  </span>
+
+  <span>
+    <strong>Project Manager:</strong>{" "}
+    {project.assignedManager?.name ||
+      project.projectManager?.name ||
+      "Not assigned"}
+  </span>
+</div>
 
               <div className="mt-4 flex gap-3">
                 {/* View Overview */}

@@ -42,7 +42,7 @@ const createUser = async (req, res) => {
   }
 };
 
-// Get All Users (Search + Filter + Sorting + Pagination)
+// Get All Users
 const getUsers = async (req, res) => {
   try {
     const {
@@ -55,7 +55,6 @@ const getUsers = async (req, res) => {
 
     const query = {};
 
-    // Search
     if (search) {
       query.$or = [
         {
@@ -73,12 +72,10 @@ const getUsers = async (req, res) => {
       ];
     }
 
-    // Filter
     if (role) {
       query.role = role;
     }
 
-    // Sorting
     let sortOption = {};
 
     switch (sort) {
@@ -154,7 +151,7 @@ const getUserById = async (req, res) => {
   }
 };
 
-// Update User
+// Update User (Admin)
 const updateUser = async (req, res) => {
   try {
     const { name, email, role } = req.body;
@@ -218,6 +215,129 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Update My Profile
+const updateMyProfile = async (req, res) => {
+  try {
+    const { name, email, avatar } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if email is already used by another user
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({
+        email,
+        _id: { $ne: user._id },
+      });
+
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already in use",
+        });
+      }
+
+      user.email = email;
+    }
+
+    if (name !== undefined) {
+      user.name = name;
+    }
+
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Change My Password
+const changeMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "New password must be at least 6 characters",
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10
+    );
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // Change User Role
 const changeUserRole = async (req, res) => {
   try {
@@ -257,4 +377,6 @@ module.exports = {
   updateUser,
   deleteUser,
   changeUserRole,
+  updateMyProfile,
+  changeMyPassword,
 };

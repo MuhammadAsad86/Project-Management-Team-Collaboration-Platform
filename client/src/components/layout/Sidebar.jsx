@@ -23,6 +23,7 @@ const Sidebar = () => {
   ];
 
   const teamMemberLinks = [
+     { name: "Dashboard", path: "/team-member-dashboard" },
     { name: "Tasks", path: "/tasks" },
     { name: "Calendar", path: "/calendar" },
     { name: "Profile", path: "/profile" },

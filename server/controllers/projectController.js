@@ -108,13 +108,15 @@ const getProjects = async (req, res) => {
     // - Otherwise (project creator): sees projects they created
     let query = {};
 
-    if (req.user.role === "admin") {
-      query = {};
-    } else if (req.user.role === "project_manager") {
-      query.assignedManager = req.user.id;
-    } else {
-      query.projectManager = req.user.id;
-    }
+   if (req.user.role === "admin") {
+  query = {};
+} else if (req.user.role === "project_manager") {
+  query.assignedManager = req.user.id;
+} else if (req.user.role === "team_member") {
+  query.teamMembers = req.user.id;
+} else {
+  query.projectManager = req.user.id;
+}
 
     if (search) {
       query.name = {
@@ -194,23 +196,32 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    // Authorization
-    const isAdmin = req.user.role === "admin";
+// Authorization
+const isAdmin = req.user.role === "admin";
 
-    const isProjectManager =
-      project.projectManager?._id?.toString() === req.user.id;
+const isProjectManager =
+  project.projectManager?._id?.toString() === req.user.id;
 
-    const isAssignedManager =
-      project.assignedManager?._id?.toString() === req.user.id;
+const isAssignedManager =
+  project.assignedManager?._id?.toString() === req.user.id;
 
+const isTeamMember =
+  req.user.role === "team_member" &&
+  project.teamMembers?.some(
+    (member) => member._id?.toString() === req.user.id
+  );
 
-    if (!isAdmin && !isProjectManager && !isAssignedManager) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to view this project",
-      });
-    }
-
+if (
+  !isAdmin &&
+  !isProjectManager &&
+  !isAssignedManager &&
+  !isTeamMember
+) {
+  return res.status(403).json({
+  success: false,
+  message: "You are not authorized to view this project",
+});
+}
 
     // Get project tasks
     const tasks = await Task.find({
@@ -253,12 +264,15 @@ const updateProject = async (req, res) => {
     // Authorization: Only Admin can update a project.
     const isAdmin = req.user.role === "admin";
 
-    if (!isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to update this project",
-      });
-    }
+const isAssignedManager =
+  project.assignedManager?.toString() === req.user.id;
+
+if (!isAdmin && !isAssignedManager) {
+  return res.status(403).json({
+    success: false,
+    message: "You are not authorized to update this project",
+  });
+}
 
     // Whitelist: only these fields may be updated. This prevents
     // unexpected/protected fields from being overwritten via req.body.
@@ -578,18 +592,31 @@ const getProjectWorkspace = async (req, res) => {
       });
     }
 
-    const isAdmin = req.user.role === "admin";
-    const isProjectManager =
-      project.projectManager?._id?.toString() === req.user.id;
-    const isAssignedManager =
-      project.assignedManager?._id?.toString() === req.user.id;
+  const isAdmin = req.user.role === "admin";
 
-    if (!isAdmin && !isProjectManager && !isAssignedManager) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to view this project workspace",
-      });
-    }
+const isProjectManager =
+  project.projectManager?._id?.toString() === req.user.id;
+
+const isAssignedManager =
+  project.assignedManager?._id?.toString() === req.user.id;
+
+const isTeamMember =
+  req.user.role === "team_member" &&
+  project.teamMembers?.some(
+    (member) => member._id?.toString() === req.user.id
+  );
+
+if (
+  !isAdmin &&
+  !isProjectManager &&
+  !isAssignedManager &&
+  !isTeamMember
+) {
+  return res.status(403).json({
+    success: false,
+    message: "You are not authorized to view this project workspace",
+  });
+}
 
     const tasks = await Task.find({
       project: project._id,

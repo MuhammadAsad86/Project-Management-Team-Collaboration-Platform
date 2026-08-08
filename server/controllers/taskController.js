@@ -18,11 +18,13 @@ const createTask = async (req, res) => {
     if (!title || !project || !assignedTo) {
       return res.status(400).json({
         success: false,
-        message: "Title, project and assigned user are required",
+        message:
+          "Title, project and assigned user are required",
       });
     }
 
-    const projectExists = await Project.findById(project);
+    const projectExists =
+      await Project.findById(project);
 
     if (!projectExists) {
       return res.status(404).json({
@@ -31,29 +33,29 @@ const createTask = async (req, res) => {
       });
     }
 
-   // Authorization:
-// Admin can create task on any project
-// Assigned Project Manager can create task on their project
+    const isAdmin =
+      req.user.role === "admin";
 
-const isAdmin = req.user.role === "admin";
+    const isAssignedManager =
+      projectExists.assignedManager?.toString() ===
+      req.user.id;
 
-const isAssignedManager =
-  projectExists.assignedManager?.toString() === req.user.id;
+    if (!isAdmin && !isAssignedManager) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not assigned to this project",
+      });
+    }
 
-
-if (!isAdmin && !isAssignedManager) {
-  return res.status(403).json({
-    success: false,
-    message: "You are not assigned to this project",
-  });
-}
-
-    const userExists = await User.findById(assignedTo);
+    const userExists =
+      await User.findById(assignedTo);
 
     if (!userExists) {
       return res.status(404).json({
         success: false,
-        message: "Assigned user not found",
+        message:
+          "Assigned user not found",
       });
     }
 
@@ -70,7 +72,8 @@ if (!isAdmin && !isAssignedManager) {
 
     res.status(201).json({
       success: true,
-      message: "Task created successfully",
+      message:
+        "Task created successfully",
       task,
     });
   } catch (error) {
@@ -81,7 +84,8 @@ if (!isAdmin && !isAssignedManager) {
   }
 };
 
-// Get All Tasks (Search + Filter + Sorting + Pagination)
+// Get All Tasks
+// Admin + Project Manager only
 const getTasks = async (req, res) => {
   try {
     const {
@@ -93,19 +97,26 @@ const getTasks = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
-let query = {};
 
-if (req.user.role === "team_member") {
-  query.assignedTo = req.user.id;
-} else if (req.user.role === "project_manager") {
-  const projects = await Project.find({
-    assignedManager: req.user.id,
-  }).select("_id");
+    let query = {};
 
-  query.project = {
-    $in: projects.map((p) => p._id),
-  };
-}
+    // Project Manager only sees tasks
+    // belonging to their assigned projects.
+    if (
+      req.user.role ===
+      "project_manager"
+    ) {
+      const projects =
+        await Project.find({
+          assignedManager: req.user.id,
+        }).select("_id");
+
+      query.project = {
+        $in: projects.map(
+          (project) => project._id
+        ),
+      };
+    }
 
     if (search) {
       query.title = {
@@ -114,52 +125,95 @@ if (req.user.role === "team_member") {
       };
     }
 
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
-   if (assignedTo && req.user.role === "admin") {
-  query.assignedTo = assignedTo;
-}
+    if (status) {
+      query.status = status;
+    }
+
+    if (priority) {
+      query.priority = priority;
+    }
+
+    // Only Admin can arbitrarily filter
+    // by assignedTo.
+    if (
+      assignedTo &&
+      req.user.role === "admin"
+    ) {
+      query.assignedTo = assignedTo;
+    }
 
     let sortOption = {};
 
     switch (sort) {
       case "title":
-        sortOption = { title: 1 };
+        sortOption = {
+          title: 1,
+        };
         break;
 
       case "priority":
-        sortOption = { priority: 1 };
+        sortOption = {
+          priority: 1,
+        };
         break;
 
       case "dueDate":
-        sortOption = { dueDate: 1 };
+        sortOption = {
+          dueDate: 1,
+        };
         break;
 
       default:
-        sortOption = { createdAt: -1 };
+        sortOption = {
+          createdAt: -1,
+        };
     }
 
-    const currentPage = Number(page);
-    const perPage = Number(limit);
-    const skip = (currentPage - 1) * perPage;
+    const currentPage =
+      Number(page);
 
-    const totalRecords = await Task.countDocuments(query);
+    const perPage =
+      Number(limit);
 
-    const tasks = await Task.find(query)
-      .populate("project", "name assignedManager")
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email")
-      .sort(sortOption)
-      .skip(skip)
-      .limit(perPage);
+    const skip =
+      (currentPage - 1) *
+      perPage;
+
+    const totalRecords =
+      await Task.countDocuments(query);
+
+    const tasks =
+      await Task.find(query)
+        .populate(
+          "project",
+          "name assignedManager"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .populate(
+          "createdBy",
+          "name email"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(perPage);
 
     res.status(200).json({
       success: true,
       totalRecords,
       currentPage,
-      totalPages: Math.ceil(totalRecords / perPage),
-      hasNextPage: currentPage * perPage < totalRecords,
-      hasPreviousPage: currentPage > 1,
+      totalPages:
+        Math.ceil(
+          totalRecords / perPage
+        ),
+      hasNextPage:
+        currentPage *
+          perPage <
+        totalRecords,
+      hasPreviousPage:
+        currentPage > 1,
       count: tasks.length,
       tasks,
     });
@@ -172,30 +226,62 @@ if (req.user.role === "team_member") {
 };
 
 // Get Single Task
-const getTaskById = async (req, res) => {
+const getTaskById = async (
+  req,
+  res
+) => {
   try {
-    const task = await Task.findById(req.params.id)
-  .populate("project", "name assignedManager")
-  .populate("assignedTo", "name email role")
-  .populate("createdBy", "name email");
+    const task =
+      await Task.findById(
+        req.params.id
+      )
+        .populate(
+          "project",
+          "name assignedManager"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .populate(
+          "createdBy",
+          "name email"
+        );
 
-if (!task) {
-  return res.status(404).json({
-    success: false,
-    message: "Task not found",
-  });
-}
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
 
-if (
-  req.user.role !== "admin" &&
-  task.assignedTo._id.toString() !== req.user.id &&
-  task.project.assignedManager?.toString() !== req.user.id
-) {
-  return res.status(403).json({
-    success: false,
-    message: "Access denied",
-  });
-}
+    const isAdmin =
+      req.user.role === "admin";
+
+    const isProjectManager =
+      req.user.role ===
+        "project_manager" &&
+      task.project?.assignedManager
+        ?.toString() ===
+        req.user.id;
+
+    const isAssignedTeamMember =
+      req.user.role ===
+        "team_member" &&
+      task.assignedTo?._id
+        ?.toString() ===
+        req.user.id;
+
+    if (
+      !isAdmin &&
+      !isProjectManager &&
+      !isAssignedTeamMember
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -210,12 +296,19 @@ if (
 };
 
 // Update Task
-const updateTask = async (req, res) => {
+// Admin + assigned Project Manager
+const updateTask = async (
+  req,
+  res
+) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate("project", "name assignedManager")
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email");
+    const task =
+      await Task.findById(
+        req.params.id
+      ).populate(
+        "project",
+        "name assignedManager"
+      );
 
     if (!task) {
       return res.status(404).json({
@@ -224,25 +317,38 @@ const updateTask = async (req, res) => {
       });
     }
 
-    // Authorization Check
+    const isAdmin =
+      req.user.role === "admin";
+
+    const isAssignedManager =
+      req.user.role ===
+        "project_manager" &&
+      task.project?.assignedManager
+        ?.toString() ===
+        req.user.id;
+
     if (
-      req.user.role !== "admin" &&
-      task.assignedTo._id.toString() !== req.user.id &&
-      task.project.assignedManager?.toString() !== req.user.id
+      !isAdmin &&
+      !isAssignedManager
     ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message:
+          "You are not authorized to update this task",
       });
     }
 
-    Object.assign(task, req.body);
+    Object.assign(
+      task,
+      req.body
+    );
 
     await task.save();
 
     res.status(200).json({
       success: true,
-      message: "Task updated successfully",
+      message:
+        "Task updated successfully",
       task,
     });
   } catch (error) {
@@ -254,11 +360,19 @@ const updateTask = async (req, res) => {
 };
 
 // Delete Task
-const deleteTask = async (req, res) => {
+// Admin + assigned Project Manager
+const deleteTask = async (
+  req,
+  res
+) => {
   try {
-    const task = await Task.findById(req.params.id)
-      .populate("project", "name assignedManager")
-      .populate("assignedTo", "name email role");
+    const task =
+      await Task.findById(
+        req.params.id
+      ).populate(
+        "project",
+        "name assignedManager"
+      );
 
     if (!task) {
       return res.status(404).json({
@@ -267,15 +381,24 @@ const deleteTask = async (req, res) => {
       });
     }
 
-    // Authorization Check
+    const isAdmin =
+      req.user.role === "admin";
+
+    const isAssignedManager =
+      req.user.role ===
+        "project_manager" &&
+      task.project?.assignedManager
+        ?.toString() ===
+        req.user.id;
+
     if (
-      req.user.role !== "admin" &&
-      task.assignedTo._id.toString() !== req.user.id &&
-      task.project.assignedManager?.toString() !== req.user.id
+      !isAdmin &&
+      !isAssignedManager
     ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message:
+          "You are not authorized to delete this task",
       });
     }
 
@@ -283,7 +406,8 @@ const deleteTask = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Task deleted successfully",
+      message:
+        "Task deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -292,19 +416,118 @@ const deleteTask = async (req, res) => {
     });
   }
 };
-// Get Assigned Tasks (Team Member)
-const getAssignedTasks = async (req, res) => {
+
+// Get Assigned Tasks
+// Team Member only
+const getAssignedTasks = async (
+  req,
+  res
+) => {
   try {
-    const tasks = await Task.find({
+    const {
+      search,
+      status,
+      priority,
+      sort,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const query = {
       assignedTo: req.user.id,
-    })
-      .populate("project", "name")
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
+    };
+
+    if (search) {
+      query.title = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (priority) {
+      query.priority = priority;
+    }
+
+    let sortOption = {
+      createdAt: -1,
+    };
+
+    switch (sort) {
+      case "title":
+        sortOption = {
+          title: 1,
+        };
+        break;
+
+      case "priority":
+        sortOption = {
+          priority: 1,
+        };
+        break;
+
+      case "dueDate":
+        sortOption = {
+          dueDate: 1,
+        };
+        break;
+
+      default:
+        sortOption = {
+          createdAt: -1,
+        };
+    }
+
+    const currentPage =
+      Number(page);
+
+    const perPage =
+      Number(limit);
+
+    const skip =
+      (currentPage - 1) *
+      perPage;
+
+    const totalRecords =
+      await Task.countDocuments(
+        query
+      );
+
+    const tasks =
+      await Task.find(query)
+        .populate(
+          "project",
+          "name"
+        )
+        .populate(
+          "assignedTo",
+          "name email role"
+        )
+        .populate(
+          "createdBy",
+          "name email"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(perPage);
 
     res.status(200).json({
       success: true,
+      totalRecords,
+      currentPage,
+      totalPages:
+        Math.ceil(
+          totalRecords / perPage
+        ),
+      hasNextPage:
+        currentPage *
+          perPage <
+        totalRecords,
+      hasPreviousPage:
+        currentPage > 1,
       count: tasks.length,
       tasks,
     });
@@ -315,20 +538,46 @@ const getAssignedTasks = async (req, res) => {
     });
   }
 };
-// Update Task Status (Team Member)
-const updateTaskStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
 
-    const task = await Task.findOne({
-      _id: req.params.id,
-      assignedTo: req.user.id,
-    });
+// Update Task Status
+// Assigned Team Member only
+const updateTaskStatus = async (
+  req,
+  res
+) => {
+  try {
+    const { status } =
+      req.body;
+
+    const allowedStatuses = [
+      "todo",
+      "in_progress",
+      "completed",
+    ];
+
+    if (
+      !allowedStatuses.includes(
+        status
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid task status",
+      });
+    }
+
+    const task =
+      await Task.findOne({
+        _id: req.params.id,
+        assignedTo: req.user.id,
+      });
 
     if (!task) {
       return res.status(404).json({
         success: false,
-        message: "Task not found",
+        message:
+          "Task not found or not assigned to you",
       });
     }
 
@@ -338,7 +587,8 @@ const updateTaskStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Task status updated successfully",
+      message:
+        "Task status updated successfully",
       task,
     });
   } catch (error) {
@@ -348,27 +598,35 @@ const updateTaskStatus = async (req, res) => {
     });
   }
 };
+
 // Team Member Dashboard Stats
-const getMyTaskStats = async (req, res) => {
+const getMyTaskStats = async (
+  req,
+  res
+) => {
   try {
-    const totalTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-    });
+    const totalTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+      });
 
-    const todoTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-      status: "todo",
-    });
+    const todoTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+        status: "todo",
+      });
 
-    const inProgressTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-      status: "in_progress",
-    });
+    const inProgressTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+        status: "in_progress",
+      });
 
-    const completedTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-      status: "completed",
-    });
+    const completedTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+        status: "completed",
+      });
 
     res.status(200).json({
       success: true,
@@ -386,6 +644,7 @@ const getMyTaskStats = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   createTask,
   getTasks,

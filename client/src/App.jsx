@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProjectManagerDashboard from "./pages/ProjectManagerDashboard";
+import TeamMemberDashboard from "./pages/TeamMemberDashboard";
 import Users from "./pages/Users";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
@@ -29,49 +30,136 @@ function App() {
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
-        <Route
-          element={
-            <RoleRoute
-              allowedRoles={[
-                "admin",
-                "project_manager",
-                "team_member",
-              ]}
-            />
-          }
-        >
-          <Route element={<MainLayout />}>
-            {/* Dashboard */}
+        <Route element={<MainLayout />}>
+
+          {/* =========================
+              ADMIN ONLY
+          ========================== */}
+          <Route element={<RoleRoute allowedRoles={["admin"]} />}>
             <Route path="/" element={<Dashboard />} />
 
-            {/* Project Manager Dashboard */}
+            <Route path="/users" element={<Users />} />
+
+            <Route path="/teams" element={<Teams />} />
+          </Route>
+
+          {/* =========================
+              PROJECT MANAGER ONLY
+          ========================== */}
+          <Route
+            element={
+              <RoleRoute allowedRoles={["project_manager"]} />
+            }
+          >
             <Route
               path="/pm-dashboard"
               element={<ProjectManagerDashboard />}
             />
+          </Route>
 
-            {/* Users */}
-            <Route path="/users" element={<Users />} />
+          {/* =========================
+              TEAM MEMBER ONLY
+          ========================== */}
+          <Route
+            element={
+              <RoleRoute allowedRoles={["team_member"]} />
+            }
+          >
+            <Route
+              path="/team-member-dashboard"
+              element={<TeamMemberDashboard />}
+            />
+          </Route>
 
-            {/* Projects */}
-            <Route path="/projects" element={<Projects />} />
+          {/* =========================
+              SHARED PROJECT ROUTES
+          ========================== */}
+
+          <Route
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  "admin",
+                  "project_manager",
+                  "team_member",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/projects"
+              element={<Projects />}
+            />
+
             <Route
               path="/projects/:id"
               element={<ProjectDetails />}
             />
-
-            {/* Tasks */}
-            <Route path="/tasks" element={<Tasks />} />
-
-            {/* Teams */}
-            <Route path="/teams" element={<Teams />} />
-
-            {/* Calendar */}
-            <Route path="/calendar" element={<Calendar />} />
-
-            {/* Profile */}
-            <Route path="/profile" element={<Profile />} />
           </Route>
+
+          {/* =========================
+              SHARED TASK ROUTE
+          ========================== */}
+
+          <Route
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  "admin",
+                  "project_manager",
+                  "team_member",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/tasks"
+              element={<Tasks />}
+            />
+          </Route>
+
+          {/* =========================
+              SHARED CALENDAR
+          ========================== */}
+
+          <Route
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  "admin",
+                  "project_manager",
+                  "team_member",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/calendar"
+              element={<Calendar />}
+            />
+          </Route>
+
+          {/* =========================
+              SHARED PROFILE
+          ========================== */}
+
+          <Route
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  "admin",
+                  "project_manager",
+                  "team_member",
+                ]}
+              />
+            }
+          >
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
+          </Route>
+
         </Route>
       </Route>
 
