@@ -316,6 +316,42 @@ const Tasks = () => {
                 </span>
               </div>
 
+              {/* Status History */}
+              {task.statusHistory?.length > 0 && (
+                <div className="mt-5 rounded-lg border p-4">
+                  <h3 className="mb-3 font-semibold">
+                    Status History
+                  </h3>
+
+                  <div className="space-y-3">
+                    {[...task.statusHistory]
+                      .reverse()
+                      .map((history) => (
+                        <div
+                          key={history._id}
+                          className="border-l-2 pl-3"
+                        >
+                          <p className="font-medium">
+                            {history.from} →{" "}
+                            {history.to}
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+                            Changed by:{" "}
+                            {history.changedBy}
+                          </p>
+
+                          <p className="text-sm text-gray-500">
+                            {new Date(
+                              history.changedAt
+                            ).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-5 flex gap-3">
                 {isTeamMember && (
                   <select
@@ -334,6 +370,10 @@ const Tasks = () => {
 
                     <option value="in_progress">
                       In Progress
+                    </option>
+
+                    <option value="review">
+                      Review
                     </option>
 
                     <option value="completed">

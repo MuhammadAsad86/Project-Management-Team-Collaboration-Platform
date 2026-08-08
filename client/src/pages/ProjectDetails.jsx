@@ -5,7 +5,7 @@ import {
   getProjectById,
   getProjectWorkspace,
   addProjectMember,
-  removeProjectMember
+  removeProjectMember,
 } from "../services/projectService";
 
 import { getUsers } from "../services/userService";
@@ -13,33 +13,49 @@ import toast from "react-hot-toast";
 
 const ProjectDetails = () => {
   const { id } = useParams();
-  const [removingMember, setRemovingMember] = useState(null);
+
+  const [removingMember, setRemovingMember] =
+    useState(null);
 
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMember, setSelectedMember] =
+    useState(null);
 
-  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showMemberModal, setShowMemberModal] =
+    useState(false);
+
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const [addingMember, setAddingMember] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [addingMember, setAddingMember] =
+    useState(false);
+
+  const [activeTab, setActiveTab] =
+    useState("overview");
 
   useEffect(() => {
     const fetchProject = async () => {
       try {
         const data = await getProjectById(id);
-            console.log("fetchProject response:", data);
-    console.log("fetchProject tasks:", data.tasks);
+
+        console.log(
+          "fetchProject response:",
+          data
+        );
+
+        console.log(
+          "fetchProject tasks:",
+          data.tasks
+        );
 
         setProject(data.project);
         setTasks(data.tasks || []);
       } catch (error) {
         toast.error(
           error.response?.data?.message ||
-          "Failed to load project"
+            "Failed to load project"
         );
       } finally {
         setLoading(false);
@@ -48,7 +64,6 @@ const ProjectDetails = () => {
 
     fetchProject();
     fetchWorkspace();
-
   }, [id]);
 
   const fetchUsers = async () => {
@@ -58,59 +73,72 @@ const ProjectDetails = () => {
       });
 
       const assignedIds =
-        project?.teamMembers?.map((member) => member._id) || [];
+        project?.teamMembers?.map(
+          (member) => member._id
+        ) || [];
 
-      const availableUsers = (data.users || []).filter(
-        (user) => !assignedIds.includes(user._id)
+      const availableUsers = (
+        data.users || []
+      ).filter(
+        (user) =>
+          !assignedIds.includes(user._id)
       );
 
       setUsers(availableUsers);
-
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-        "Failed to load users"
+          "Failed to load users"
       );
     }
   };
+
   const fetchWorkspace = async () => {
     try {
-      const data = await getProjectWorkspace(id);
-      
+      const data =
+        await getProjectWorkspace(id);
 
       setWorkspace(data);
-
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-        "Failed to load workspace"
+          "Failed to load workspace"
       );
     }
   };
-  const handleRemoveMember = async (memberId) => {
+
+  const handleRemoveMember = async (
+    memberId
+  ) => {
     setRemovingMember(memberId);
+
     try {
-      await removeProjectMember(id, memberId);
+      await removeProjectMember(
+        id,
+        memberId
+      );
 
-      toast.success("Member removed successfully");
+      toast.success(
+        "Member removed successfully"
+      );
 
-      const data = await getProjectById(id);
+      const data =
+        await getProjectById(id);
 
       setProject(data.project);
       setTasks(data.tasks || []);
-      fetchWorkspace();
 
+      fetchWorkspace();
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-        "Failed to remove member"
+          "Failed to remove member"
       );
-
-    }
-    finally {
+    } finally {
       setRemovingMember(null);
     }
   };
+
   const filteredUsers = users.filter(
     (user) =>
       user.name
@@ -121,7 +149,6 @@ const ProjectDetails = () => {
         .includes(search.toLowerCase())
   );
 
-
   if (loading) {
     return (
       <div className="text-center text-lg">
@@ -129,7 +156,6 @@ const ProjectDetails = () => {
       </div>
     );
   }
-
 
   if (!project) {
     return (
@@ -139,32 +165,44 @@ const ProjectDetails = () => {
     );
   }
 
-  const totalTasks = workspace?.statistics?.totalTasks ?? 0;
-const completedTasks = workspace?.statistics?.completedTasks ?? 0;
+  const totalTasks =
+    workspace?.statistics?.totalTasks ?? 0;
 
-const progressPercentage =
-  totalTasks === 0
-    ? 0
-    : Math.round((completedTasks / totalTasks) * 100);
-    console.log("Tasks State:", tasks);
+  const completedTasks =
+    workspace?.statistics?.completedTasks ?? 0;
+
+  const inProgressTasks =
+    workspace?.statistics?.inProgressTasks ?? 0;
+
+  const reviewTasks =
+    workspace?.statistics?.reviewTasks ?? 0;
+
+  const pendingTasks =
+    workspace?.statistics?.pendingTasks ?? 0;
+
+  const progressPercentage =
+    totalTasks === 0
+      ? 0
+      : Math.round(
+          (completedTasks / totalTasks) * 100
+        );
+
+  console.log("Tasks State:", tasks);
 
   return (
     <div className="space-y-6">
-
       {/* Project Info */}
       <div className="rounded-lg bg-white p-6 shadow">
-
         <h1 className="text-3xl font-bold">
           {project.name}
         </h1>
 
         <p className="mt-2 text-gray-600">
-          {project.description || "No description"}
+          {project.description ||
+            "No description"}
         </p>
 
-
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-
           <div>
             <p className="text-sm text-gray-500">
               Status
@@ -175,7 +213,6 @@ const progressPercentage =
             </p>
           </div>
 
-
           <div>
             <p className="text-sm text-gray-500">
               Priority
@@ -185,7 +222,6 @@ const progressPercentage =
               {project.priority}
             </p>
           </div>
-
 
           <div>
             <p className="text-sm text-gray-500">
@@ -198,372 +234,421 @@ const progressPercentage =
                 "Not Assigned"}
             </p>
           </div>
-
         </div>
-
       </div>
-
 
       {/* Workspace Tabs */}
       <div className="rounded-lg bg-white p-4 shadow">
-
         <div className="flex flex-wrap gap-3 border-b pb-3">
           <button
-            onClick={() => setActiveTab("overview")}
-            className={`rounded px-4 py-2 ${activeTab === "overview"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
-              }`}
+            onClick={() =>
+              setActiveTab("overview")
+            }
+            className={`rounded px-4 py-2 ${
+              activeTab === "overview"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
           >
             Overview
           </button>
 
           <button
-            onClick={() => setActiveTab("tasks")}
-            className={`rounded px-4 py-2 ${activeTab === "tasks"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
-              }`}
+            onClick={() =>
+              setActiveTab("tasks")
+            }
+            className={`rounded px-4 py-2 ${
+              activeTab === "tasks"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
           >
             Tasks
           </button>
 
           <button
-            onClick={() => setActiveTab("members")}
-            className={`rounded px-4 py-2 ${activeTab === "members"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
-              }`}
+            onClick={() =>
+              setActiveTab("members")
+            }
+            className={`rounded px-4 py-2 ${
+              activeTab === "members"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
           >
             Members
           </button>
+
           <button
-            onClick={() => setActiveTab("discussion")}
-            className={`rounded px-4 py-2 ${activeTab === "discussion"
+            onClick={() =>
+              setActiveTab("discussion")
+            }
+            className={`rounded px-4 py-2 ${
+              activeTab === "discussion"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-              }`}
+            }`}
           >
             Discussion
           </button>
 
           <button
-            onClick={() => setActiveTab("progress")}
-            className={`rounded px-4 py-2 ${activeTab === "progress"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200"
-              }`}
+            onClick={() =>
+              setActiveTab("progress")
+            }
+            className={`rounded px-4 py-2 ${
+              activeTab === "progress"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
           >
             Progress
           </button>
-
         </div>
-
       </div>
-
 
       {/* Project Overview */}
-{activeTab === "overview" && (
-  <>
-    <div className="rounded-lg bg-white p-6 shadow">
-      <h2 className="mb-4 text-2xl font-bold">
-        Project Overview
-      </h2>
+      {activeTab === "overview" && (
+        <>
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-4 text-2xl font-bold">
+              Project Overview
+            </h2>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <p className="text-sm text-gray-500">
-            Project Name
-          </p>
-          <p className="font-semibold">
-            {project.name}
-          </p>
-        </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-gray-500">
+                  Project Name
+                </p>
 
-        <div>
-          <p className="text-sm text-gray-500">
-            Status
-          </p>
-          <p className="font-semibold capitalize">
-            {project.status}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">
-            Priority
-          </p>
-          <p className="font-semibold capitalize">
-            {project.priority}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-500">
-            Total Tasks
-          </p>
-          <p className="font-semibold">
-            {tasks.length}
-          </p>
-        </div>
-      </div>
-    </div>
-      
-
-        {/* Workspace Statistics */}
-    <div className="rounded-lg bg-white p-6 shadow">
-      <h2 className="mb-4 text-2xl font-bold">
-        Workspace Statistics
-      </h2>
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded border p-4 text-center">
-          <p className="text-sm text-gray-500">Total Tasks</p>
-          <p className="text-2xl font-bold">
-            {workspace?.statistics?.totalTasks ?? 0}
-          </p>
-        </div>
-
-        <div className="rounded border p-4 text-center">
-          <p className="text-sm text-gray-500">Completed</p>
-          <p className="text-2xl font-bold text-green-600">
-            {workspace?.statistics?.completedTasks ?? 0}
-          </p>
-        </div>
-
-        <div className="rounded border p-4 text-center">
-          <p className="text-sm text-gray-500">In Progress</p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {workspace?.statistics?.inProgressTasks ?? 0}
-          </p>
-        </div>
-
-        <div className="rounded border p-4 text-center">
-          <p className="text-sm text-gray-500">Pending</p>
-          <p className="text-2xl font-bold text-red-600">
-            {workspace?.statistics?.pendingTasks ?? 0}
-          </p>
-        </div>
-      </div>
-    </div>
-  </>
-)}
-     
-      {/* Team Members */}
-      {activeTab === "members" && (
-      <div className="rounded-lg bg-white p-6 shadow">
-
-        <h2 className="mb-4 text-2xl font-bold">
-          Team Members
-        </h2>
-
-
-        {project.teamMembers?.length === 0 ? (
-
-          <div>
-
-            <p className="text-gray-500">
-              No team members assigned.
-            </p>
-
-            <button
-              onClick={() => {
-                setShowMemberModal(true);
-                fetchUsers();
-              }}
-              className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Add Member
-            </button>
-
-          </div>
-
-
-        ) : (
-
-          <div className="space-y-3">
-
-            {project.teamMembers.map((member) => (
-              <div
-                key={member._id}
-                className="flex items-center justify-between rounded border p-3"
-              >
-
-                <div>
-                  <p className="font-semibold">
-                    {member.name}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    {member.email}
-                  </p>
-                </div>
-
-
-                <button
-                  onClick={() => handleRemoveMember(member._id)}
-                  disabled={removingMember === member._id}
-                  className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {removingMember === member._id ? "Removing..." : "Remove"}
-                </button>
-
+                <p className="font-semibold">
+                  {project.name}
+                </p>
               </div>
-            ))}
 
+              <div>
+                <p className="text-sm text-gray-500">
+                  Status
+                </p>
 
-            <button
+                <p className="font-semibold capitalize">
+                  {project.status}
+                </p>
+              </div>
 
-              onClick={() => {
-                setShowMemberModal(true);
-                fetchUsers();
-              }}
-              className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Add Member
-            </button>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Priority
+                </p>
 
+                <p className="font-semibold capitalize">
+                  {project.priority}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">
+                  Total Tasks
+                </p>
+
+                <p className="font-semibold">
+                  {tasks.length}
+                </p>
+              </div>
+            </div>
           </div>
 
-        )}
+          {/* Workspace Statistics */}
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="mb-4 text-2xl font-bold">
+              Workspace Statistics
+            </h2>
 
-      </div>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+              {/* Total */}
+              <div className="rounded border p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Total Tasks
+                </p>
+
+                <p className="text-2xl font-bold">
+                  {totalTasks}
+                </p>
+              </div>
+
+              {/* Completed */}
+              <div className="rounded border p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Completed
+                </p>
+
+                <p className="text-2xl font-bold text-green-600">
+                  {completedTasks}
+                </p>
+              </div>
+
+              {/* In Progress */}
+              <div className="rounded border p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  In Progress
+                </p>
+
+                <p className="text-2xl font-bold text-yellow-600">
+                  {inProgressTasks}
+                </p>
+              </div>
+
+              {/* Review */}
+              <div className="rounded border p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Review
+                </p>
+
+                <p className="text-2xl font-bold text-blue-600">
+                  {reviewTasks}
+                </p>
+              </div>
+
+              {/* Pending */}
+              <div className="rounded border p-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Pending
+                </p>
+
+                <p className="text-2xl font-bold text-red-600">
+                  {pendingTasks}
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
+      {/* Team Members */}
+      {activeTab === "members" && (
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-2xl font-bold">
+            Team Members
+          </h2>
+
+          {project.teamMembers?.length ===
+          0 ? (
+            <div>
+              <p className="text-gray-500">
+                No team members assigned.
+              </p>
+
+              <button
+                onClick={() => {
+                  setShowMemberModal(true);
+                  fetchUsers();
+                }}
+                className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
+              >
+                Add Member
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {project.teamMembers.map(
+                (member) => (
+                  <div
+                    key={member._id}
+                    className="flex items-center justify-between rounded border p-3"
+                  >
+                    <div>
+                      <p className="font-semibold">
+                        {member.name}
+                      </p>
+
+                      <p className="text-sm text-gray-500">
+                        {member.email}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        handleRemoveMember(
+                          member._id
+                        )
+                      }
+                      disabled={
+                        removingMember ===
+                        member._id
+                      }
+                      className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {removingMember ===
+                      member._id
+                        ? "Removing..."
+                        : "Remove"}
+                    </button>
+                  </div>
+                )
+              )}
+
+              <button
+                onClick={() => {
+                  setShowMemberModal(true);
+                  fetchUsers();
+                }}
+                className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
+              >
+                Add Member
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Project Tasks */}
       {activeTab === "tasks" && (
-      <div className="rounded-lg bg-white p-6 shadow">
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-2xl font-bold">
+            Project Tasks
+          </h2>
 
-        <h2 className="mb-4 text-2xl font-bold">
-          Project Tasks
-        </h2>
+          {tasks.length === 0 ? (
+            <p className="text-gray-500">
+              No tasks found.
+            </p>
+          ) : (
+            tasks.map((task) => (
+              <div
+                key={task._id}
+                className="mb-3 rounded border p-4"
+              >
+                <h3 className="font-semibold">
+                  {task.title}
+                </h3>
 
+                <p className="text-sm">
+                  {task.status}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
-        {tasks.length === 0 ? (
+      {/* Discussion */}
+      {activeTab === "discussion" && (
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-2xl font-bold">
+            Discussion
+          </h2>
 
           <p className="text-gray-500">
-            No tasks found.
+            Discussion feature coming soon.
           </p>
+        </div>
+      )}
 
-        ) : (
+      {/* Project Progress */}
+      {activeTab === "progress" && (
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-6 text-2xl font-bold">
+            Project Progress
+          </h2>
 
-          tasks.map((task) => (
-            <div
-              key={task._id}
-              className="rounded border p-4 mb-3"
-            >
-
-              <h3 className="font-semibold">
-                {task.title}
-              </h3>
-
-              <p className="text-sm">
-                {task.status}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            {/* Total */}
+            <div className="rounded border p-4 text-center">
+              <p className="text-sm text-gray-500">
+                Total Tasks
               </p>
 
+              <p className="text-2xl font-bold">
+                {totalTasks}
+              </p>
             </div>
-          ))
 
-        )}
+            {/* Completed */}
+            <div className="rounded border p-4 text-center">
+              <p className="text-sm text-gray-500">
+                Completed
+              </p>
 
-      </div>
-)}
-{activeTab === "discussion" && (
-  <div className="rounded-lg bg-white p-6 shadow">
-    <h2 className="mb-4 text-2xl font-bold">
-      Discussion
-    </h2>
+              <p className="text-2xl font-bold text-green-600">
+                {completedTasks}
+              </p>
+            </div>
 
-    <p className="text-gray-500">
-      Discussion feature coming soon.
-    </p>
-  </div>
-)}
-{activeTab === "progress" && (
-  <div className="rounded-lg bg-white p-6 shadow">
-    <h2 className="mb-6 text-2xl font-bold">
-      Project Progress
-    </h2>
+            {/* In Progress */}
+            <div className="rounded border p-4 text-center">
+              <p className="text-sm text-gray-500">
+                In Progress
+              </p>
 
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div className="rounded border p-4 text-center">
-        <p className="text-sm text-gray-500">
-          Total Tasks
-        </p>
-        <p className="text-2xl font-bold">
-          {totalTasks}
-        </p>
-      </div>
+              <p className="text-2xl font-bold text-yellow-600">
+                {inProgressTasks}
+              </p>
+            </div>
 
-      <div className="rounded border p-4 text-center">
-        <p className="text-sm text-gray-500">
-          Completed
-        </p>
-        <p className="text-2xl font-bold text-green-600">
-          {completedTasks}
-        </p>
-      </div>
+            {/* Review */}
+            <div className="rounded border p-4 text-center">
+              <p className="text-sm text-gray-500">
+                Review
+              </p>
 
-      <div className="rounded border p-4 text-center">
-        <p className="text-sm text-gray-500">
-          In Progress
-        </p>
-        <p className="text-2xl font-bold text-yellow-600">
-          {workspace?.statistics?.inProgressTasks ?? 0}
-        </p>
-      </div>
+              <p className="text-2xl font-bold text-blue-600">
+                {reviewTasks}
+              </p>
+            </div>
 
-      <div className="rounded border p-4 text-center">
-        <p className="text-sm text-gray-500">
-          Pending
-        </p>
-        <p className="text-2xl font-bold text-red-600">
-          {workspace?.statistics?.pendingTasks ?? 0}
-        </p>
-      </div>
-    </div>
+            {/* Pending */}
+            <div className="rounded border p-4 text-center">
+              <p className="text-sm text-gray-500">
+                Pending
+              </p>
 
-    <div className="mt-8">
-      <div className="mb-2 flex justify-between">
-        <span className="font-medium">
-          Overall Progress
-        </span>
+              <p className="text-2xl font-bold text-red-600">
+                {pendingTasks}
+              </p>
+            </div>
+          </div>
 
-        <span className="font-semibold">
-          {progressPercentage}%
-        </span>
-      </div>
+          {/* Overall Progress */}
+          <div className="mt-8">
+            <div className="mb-2 flex justify-between">
+              <span className="font-medium">
+                Overall Progress
+              </span>
 
-      <div className="h-3 w-full rounded-full bg-gray-200">
-        <div
-          className="h-3 rounded-full bg-green-600 transition-all duration-300"
-          style={{ width: `${progressPercentage}%` }}
-        />
-      </div>
-    </div>
-  </div>
-)}
+              <span className="font-semibold">
+                {progressPercentage}%
+              </span>
+            </div>
+
+            <div className="h-3 w-full rounded-full bg-gray-200">
+              <div
+                className="h-3 rounded-full bg-green-600 transition-all duration-300"
+                style={{
+                  width: `${progressPercentage}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Member Modal */}
       {showMemberModal && (
-
         <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-
           <div className="w-full max-w-md rounded bg-white p-6">
-
             <h2 className="mb-4 text-2xl font-bold">
               Add Team Member
             </h2>
-
 
             <input
               type="text"
               placeholder="Search by name or email"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
               className="w-full rounded border p-2"
             />
-
 
             <div className="mt-4 max-h-60 space-y-2 overflow-y-auto">
               {users.length === 0 ? (
@@ -572,58 +657,62 @@ const progressPercentage =
                 </p>
               ) : (
                 <>
-                  {filteredUsers.length === 0 ? (
+                  {filteredUsers.length ===
+                  0 ? (
                     <p className="text-center text-gray-500">
                       No matching members found.
                     </p>
                   ) : (
-                    filteredUsers.map((user) => (
-
-                      <div
-                        key={user._id}
-                        className="flex justify-between rounded border p-3"
-                      >
-
-                        <div>
-                          <p className="font-semibold">
-                            {user.name}
-                          </p>
-
-                          <p className="text-sm text-gray-500">
-                            {user.email}
-                          </p>
-                        </div>
-
-
-                        <button
-                          onClick={() => setSelectedMember(user)}
-                          className={`rounded px-3 py-1 text-white ${selectedMember?._id === user._id
-                            ? "bg-green-600"
-                            : "bg-blue-600"
-                            }`}
+                    filteredUsers.map(
+                      (user) => (
+                        <div
+                          key={user._id}
+                          className="flex justify-between rounded border p-3"
                         >
-                          {selectedMember?._id === user._id
-                            ? "Selected"
-                            : "Select"}
-                        </button>
+                          <div>
+                            <p className="font-semibold">
+                              {user.name}
+                            </p>
 
-                      </div>
-                    ))
+                            <p className="text-sm text-gray-500">
+                              {user.email}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              setSelectedMember(
+                                user
+                              )
+                            }
+                            className={`rounded px-3 py-1 text-white ${
+                              selectedMember?._id ===
+                              user._id
+                                ? "bg-green-600"
+                                : "bg-blue-600"
+                            }`}
+                          >
+                            {selectedMember?._id ===
+                            user._id
+                              ? "Selected"
+                              : "Select"}
+                          </button>
+                        </div>
+                      )
+                    )
                   )}
                 </>
               )}
-
             </div>
-
 
             {selectedMember && (
               <p className="mb-3 text-sm text-gray-600">
-                Selected: {selectedMember.name}
+                Selected:{" "}
+                {selectedMember.name}
               </p>
             )}
 
             <div className="mt-5 flex justify-end gap-3">
-
               <button
                 onClick={() => {
                   setShowMemberModal(false);
@@ -635,11 +724,12 @@ const progressPercentage =
                 Cancel
               </button>
 
-
               <button
                 onClick={async () => {
                   if (!selectedMember) {
-                    toast.error("Please select a member");
+                    toast.error(
+                      "Please select a member"
+                    );
                     return;
                   }
 
@@ -659,18 +749,25 @@ const progressPercentage =
                     setSelectedMember(null);
                     setSearch("");
 
-                    const data = await getProjectById(id);
-                    
+                    const data =
+                      await getProjectById(
+                        id
+                      );
 
-                    setProject(data.project);
-                    setTasks(data.tasks || []);
+                    setProject(
+                      data.project
+                    );
+
+                    setTasks(
+                      data.tasks || []
+                    );
 
                     fetchWorkspace();
-
                   } catch (error) {
                     toast.error(
-                      error.response?.data?.message ||
-                      "Failed to add member"
+                      error.response?.data
+                        ?.message ||
+                        "Failed to add member"
                     );
                   } finally {
                     setAddingMember(false);
@@ -679,17 +776,14 @@ const progressPercentage =
                 disabled={addingMember}
                 className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
               >
-                {addingMember ? "Adding..." : "Add"}
+                {addingMember
+                  ? "Adding..."
+                  : "Add"}
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 };

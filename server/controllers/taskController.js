@@ -338,10 +338,24 @@ const updateTask = async (
       });
     }
 
-    Object.assign(
-      task,
-      req.body
-    );
+    // Status MUST NOT be changed through
+    // the normal PUT endpoint.
+    // Status changes must use:
+    // PATCH /tasks/:id/status
+
+    const allowedFields = [
+      "title",
+      "description",
+      "assignedTo",
+      "priority",
+      "dueDate",
+    ];
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        task[field] = req.body[field];
+      }
+    }
 
     await task.save();
 
@@ -546,32 +560,28 @@ const updateTaskStatus = async (
   res
 ) => {
   try {
-    const { status } =
-      req.body;
+    const { status } = req.body;
 
     const allowedStatuses = [
       "todo",
       "in_progress",
+      "review",
       "completed",
     ];
 
     if (
-      !allowedStatuses.includes(
-        status
-      )
+      !allowedStatuses.includes(status)
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid task status",
+        message: "Invalid task status",
       });
     }
 
-    const task =
-      await Task.findOne({
-        _id: req.params.id,
-        assignedTo: req.user.id,
-      });
+    const task = await Task.findOne({
+      _id: req.params.id,
+      assignedTo: req.user.id,
+    });
 
     if (!task) {
       return res.status(404).json({
@@ -581,6 +591,45 @@ const updateTaskStatus = async (
       });
     }
 
+    const currentStatus = task.status;
+
+    // Prevent same status update
+    if (currentStatus === status) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Task is already in this status",
+      });
+    }
+
+    // Allowed workflow transitions
+    const allowedTransitions = {
+      todo: ["in_progress"],
+      in_progress: ["review"],
+      review: ["completed"],
+      completed: [],
+    };
+
+    const nextStatuses =
+      allowedTransitions[currentStatus] || [];
+
+    if (!nextStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Invalid status transition from ${currentStatus} to ${status}`,
+      });
+    }
+
+    // Save status history
+    task.statusHistory.push({
+      from: currentStatus,
+      to: status,
+      changedBy: req.user.id,
+      changedAt: new Date(),
+    });
+
+    // Update current status
     task.status = status;
 
     await task.save();
@@ -622,6 +671,12 @@ const getMyTaskStats = async (
         status: "in_progress",
       });
 
+    const reviewTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+        status: "review",
+      });
+
     const completedTasks =
       await Task.countDocuments({
         assignedTo: req.user.id,
@@ -634,6 +689,7 @@ const getMyTaskStats = async (
         totalTasks,
         todoTasks,
         inProgressTasks,
+        reviewTasks,
         completedTasks,
       },
     });

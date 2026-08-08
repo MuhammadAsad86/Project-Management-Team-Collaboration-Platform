@@ -14,15 +14,15 @@ const createProject = async (req, res) => {
     }
 
     const {
-  name,
-  description,
-  priority,
-  status,
-  assignedManager,
-  startDate,
-  endDate,
-  teamMembers,
-} = req.body;
+      name,
+      description,
+      priority,
+      status,
+      assignedManager,
+      startDate,
+      endDate,
+      teamMembers,
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -32,9 +32,7 @@ const createProject = async (req, res) => {
     }
 
     // If an assignedManager is provided at creation time, validate it
-    // the same way assignProjectManager() does: must exist, must have
-    // the project_manager role, and must not already be assigned to
-    // another project.
+    // the same way assignProjectManager() does.
     if (assignedManager) {
       const manager = await User.findById(assignedManager);
 
@@ -59,22 +57,23 @@ const createProject = async (req, res) => {
       if (alreadyAssigned) {
         return res.status(400).json({
           success: false,
-          message: "This Project Manager is already assigned to another project",
+          message:
+            "This Project Manager is already assigned to another project",
         });
       }
     }
 
-   const project = await Project.create({
-  name,
-  description,
-  priority,
-  status,
-  assignedManager,
-  startDate,
-  endDate,
-  teamMembers,
-  projectManager: req.user.id,
-});
+    const project = await Project.create({
+      name,
+      description,
+      priority,
+      status,
+      assignedManager,
+      startDate,
+      endDate,
+      teamMembers,
+      projectManager: req.user.id,
+    });
 
     res.status(201).json({
       success: true,
@@ -89,7 +88,8 @@ const createProject = async (req, res) => {
   }
 };
 
-// Get All Projects (Search + Filter + Sorting + Pagination)
+// Get All Projects
+// Search + Filter + Sorting + Pagination
 const getProjects = async (req, res) => {
   try {
     const {
@@ -103,20 +103,21 @@ const getProjects = async (req, res) => {
     } = req.query;
 
     // Role-based base query:
-    // - Admin: can see every project
-    // - Project Manager: sees projects assigned to them
-    // - Otherwise (project creator): sees projects they created
+    // Admin: every project
+    // Project Manager: assigned projects
+    // Team Member: projects where user is a team member
+    // Otherwise: projects created by user
     let query = {};
 
-   if (req.user.role === "admin") {
-  query = {};
-} else if (req.user.role === "project_manager") {
-  query.assignedManager = req.user.id;
-} else if (req.user.role === "team_member") {
-  query.teamMembers = req.user.id;
-} else {
-  query.projectManager = req.user.id;
-}
+    if (req.user.role === "admin") {
+      query = {};
+    } else if (req.user.role === "project_manager") {
+      query.assignedManager = req.user.id;
+    } else if (req.user.role === "team_member") {
+      query.teamMembers = req.user.id;
+    } else {
+      query.projectManager = req.user.id;
+    }
 
     if (search) {
       query.name = {
@@ -125,9 +126,17 @@ const getProjects = async (req, res) => {
       };
     }
 
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
-    if (assignedManager) query.assignedManager = assignedManager;
+    if (status) {
+      query.status = status;
+    }
+
+    if (priority) {
+      query.priority = priority;
+    }
+
+    if (assignedManager) {
+      query.assignedManager = assignedManager;
+    }
 
     let sortOption = {};
 
@@ -135,15 +144,19 @@ const getProjects = async (req, res) => {
       case "name":
         sortOption = { name: 1 };
         break;
+
       case "priority":
         sortOption = { priority: 1 };
         break;
+
       case "startDate":
         sortOption = { startDate: 1 };
         break;
+
       case "endDate":
         sortOption = { endDate: 1 };
         break;
+
       default:
         sortOption = { createdAt: -1 };
     }
@@ -152,12 +165,16 @@ const getProjects = async (req, res) => {
     const perPage = Number(limit);
     const skip = (currentPage - 1) * perPage;
 
-    const totalRecords = await Project.countDocuments(query);
+    const totalRecords =
+      await Project.countDocuments(query);
 
     const projects = await Project.find(query)
       .populate("projectManager", "name email")
       .populate("assignedManager", "name email")
-      .populate("teamMembers", "name email role")
+      .populate(
+        "teamMembers",
+        "name email role"
+      )
       .sort(sortOption)
       .skip(skip)
       .limit(perPage);
@@ -166,9 +183,13 @@ const getProjects = async (req, res) => {
       success: true,
       totalRecords,
       currentPage,
-      totalPages: Math.ceil(totalRecords / perPage),
-      hasNextPage: currentPage * perPage < totalRecords,
-      hasPreviousPage: currentPage > 1,
+      totalPages: Math.ceil(
+        totalRecords / perPage
+      ),
+      hasNextPage:
+        currentPage * perPage < totalRecords,
+      hasPreviousPage:
+        currentPage > 1,
       count: projects.length,
       projects,
     });
@@ -181,13 +202,17 @@ const getProjects = async (req, res) => {
 };
 
 // Get Single Project
-// Get Single Project
 const getProjectById = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id)
+    const project = await Project.findById(
+      req.params.id
+    )
       .populate("projectManager", "name email")
       .populate("assignedManager", "name email")
-      .populate("teamMembers", "name email role");
+      .populate(
+        "teamMembers",
+        "name email role"
+      );
 
     if (!project) {
       return res.status(404).json({
@@ -196,48 +221,54 @@ const getProjectById = async (req, res) => {
       });
     }
 
-// Authorization
-const isAdmin = req.user.role === "admin";
+    // Authorization
+    const isAdmin =
+      req.user.role === "admin";
 
-const isProjectManager =
-  project.projectManager?._id?.toString() === req.user.id;
+    const isProjectManager =
+      project.projectManager?._id?.toString() ===
+      req.user.id;
 
-const isAssignedManager =
-  project.assignedManager?._id?.toString() === req.user.id;
+    const isAssignedManager =
+      project.assignedManager?._id?.toString() ===
+      req.user.id;
 
-const isTeamMember =
-  req.user.role === "team_member" &&
-  project.teamMembers?.some(
-    (member) => member._id?.toString() === req.user.id
-  );
+    const isTeamMember =
+      req.user.role === "team_member" &&
+      project.teamMembers?.some(
+        (member) =>
+          member._id?.toString() ===
+          req.user.id
+      );
 
-if (
-  !isAdmin &&
-  !isProjectManager &&
-  !isAssignedManager &&
-  !isTeamMember
-) {
-  return res.status(403).json({
-  success: false,
-  message: "You are not authorized to view this project",
-});
-}
+    if (
+      !isAdmin &&
+      !isProjectManager &&
+      !isAssignedManager &&
+      !isTeamMember
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not authorized to view this project",
+      });
+    }
 
     // Get project tasks
     const tasks = await Task.find({
       project: project._id,
     })
-      .populate("assignedTo", "name email role")
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
       .sort({ createdAt: -1 });
-
 
     res.status(200).json({
       success: true,
       project,
       tasks,
     });
-
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -245,14 +276,13 @@ if (
     });
   }
 };
-    
 
 // Update Project
 const updateProject = async (req, res) => {
   try {
-    // Fetch the project first so we can authorize based on role
-    // (Admin / assignedManager / projectManager) before updating.
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(
+      req.params.id
+    );
 
     if (!project) {
       return res.status(404).json({
@@ -261,21 +291,24 @@ const updateProject = async (req, res) => {
       });
     }
 
-    // Authorization: Only Admin can update a project.
-    const isAdmin = req.user.role === "admin";
+    const isAdmin =
+      req.user.role === "admin";
 
-const isAssignedManager =
-  project.assignedManager?.toString() === req.user.id;
+    const isAssignedManager =
+      project.assignedManager?.toString() ===
+      req.user.id;
 
-if (!isAdmin && !isAssignedManager) {
-  return res.status(403).json({
-    success: false,
-    message: "You are not authorized to update this project",
-  });
-}
+    if (
+      !isAdmin &&
+      !isAssignedManager
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not authorized to update this project",
+      });
+    }
 
-    // Whitelist: only these fields may be updated. This prevents
-    // unexpected/protected fields from being overwritten via req.body.
     const allowedFields = [
       "name",
       "description",
@@ -288,24 +321,27 @@ if (!isAdmin && !isAssignedManager) {
     ];
 
     const updates = {};
+
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
     }
 
-    const updatedProject = await Project.findByIdAndUpdate(
-      req.params.id,
-      updates,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const updatedProject =
+      await Project.findByIdAndUpdate(
+        req.params.id,
+        updates,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
 
     res.status(200).json({
       success: true,
-      message: "Project updated successfully",
+      message:
+        "Project updated successfully",
       project: updatedProject,
     });
   } catch (error) {
@@ -317,11 +353,15 @@ if (!isAdmin && !isAssignedManager) {
 };
 
 // Assign Project Manager
-const assignProjectManager = async (req, res) => {
+const assignProjectManager = async (
+  req,
+  res
+) => {
   try {
     const { managerId } = req.body;
 
-    const manager = await User.findById(managerId);
+    const manager =
+      await User.findById(managerId);
 
     if (!manager) {
       return res.status(404).json({
@@ -330,28 +370,32 @@ const assignProjectManager = async (req, res) => {
       });
     }
 
-    if (manager.role !== "project_manager") {
+    if (
+      manager.role !== "project_manager"
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Selected user is not a Project Manager",
+        message:
+          "Selected user is not a Project Manager",
       });
     }
 
-    // Ensure this manager is not already the assigned manager of
-    // another project (one-project-per-manager rule).
-    const alreadyAssigned = await Project.findOne({
-      assignedManager: manager._id,
-      _id: { $ne: req.params.id },
-    });
+    const alreadyAssigned =
+      await Project.findOne({
+        assignedManager: manager._id,
+        _id: { $ne: req.params.id },
+      });
 
     if (alreadyAssigned) {
       return res.status(400).json({
         success: false,
-        message: "This Project Manager is already assigned to another project",
+        message:
+          "This Project Manager is already assigned to another project",
       });
     }
 
-    const project = await Project.findById(req.params.id);
+    const project =
+      await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
@@ -360,13 +404,15 @@ const assignProjectManager = async (req, res) => {
       });
     }
 
-    project.assignedManager = manager._id;
+    project.assignedManager =
+      manager._id;
 
     await project.save();
 
     res.status(200).json({
       success: true,
-      message: "Project Manager assigned successfully",
+      message:
+        "Project Manager assigned successfully",
       project,
     });
   } catch (error) {
@@ -378,11 +424,15 @@ const assignProjectManager = async (req, res) => {
 };
 
 // Manage Team Members
-const manageTeamMembers = async (req, res) => {
+const manageTeamMembers = async (
+  req,
+  res
+) => {
   try {
     const { memberIds } = req.body;
 
-    const project = await Project.findById(req.params.id);
+    const project =
+      await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
@@ -391,30 +441,38 @@ const manageTeamMembers = async (req, res) => {
       });
     }
 
-    // Authorization: Only Admin or the Project Manager assigned to
-    // THIS specific project may manage its team members (not just
-    // any user with a project_manager role).
-    const isAdmin = req.user.role === "admin";
-    const isAssignedManager =
-      project.assignedManager?.toString() === req.user.id;
+    const isAdmin =
+      req.user.role === "admin";
 
-    if (!isAdmin && !isAssignedManager) {
+    const isAssignedManager =
+      project.assignedManager?.toString() ===
+      req.user.id;
+
+    if (
+      !isAdmin &&
+      !isAssignedManager
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to manage this project's team members",
+        message:
+          "You are not authorized to manage this project's team members",
       });
     }
 
-    // Validate memberIds is a non-empty array before processing.
-    if (!Array.isArray(memberIds) || memberIds.length === 0) {
+    if (
+      !Array.isArray(memberIds) ||
+      memberIds.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: "memberIds must be a non-empty array",
+        message:
+          "memberIds must be a non-empty array",
       });
     }
 
     for (const memberId of memberIds) {
-      const user = await User.findById(memberId);
+      const user =
+        await User.findById(memberId);
 
       if (!user) {
         return res.status(404).json({
@@ -423,15 +481,24 @@ const manageTeamMembers = async (req, res) => {
         });
       }
 
-      if (user.role !== "team_member") {
+      if (
+        user.role !== "team_member"
+      ) {
         return res.status(400).json({
           success: false,
-          message: `${user.name} is not a Team Member`,
+          message:
+            `${user.name} is not a Team Member`,
         });
       }
 
-      if (!project.teamMembers.includes(memberId)) {
-        project.teamMembers.push(memberId);
+      if (
+        !project.teamMembers.includes(
+          memberId
+        )
+      ) {
+        project.teamMembers.push(
+          memberId
+        );
       }
     }
 
@@ -439,7 +506,8 @@ const manageTeamMembers = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Team members updated successfully",
+      message:
+        "Team members updated successfully",
       project,
     });
   } catch (error) {
@@ -451,11 +519,15 @@ const manageTeamMembers = async (req, res) => {
 };
 
 // Remove Team Member
-const removeTeamMember = async (req, res) => {
+const removeTeamMember = async (
+  req,
+  res
+) => {
   try {
     const { memberId } = req.body;
 
-    const project = await Project.findById(req.params.id);
+    const project =
+      await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
@@ -464,41 +536,50 @@ const removeTeamMember = async (req, res) => {
       });
     }
 
-    // Authorization: Only Admin or the Project Manager assigned to
-    // THIS specific project may remove its team members.
-    const isAdmin = req.user.role === "admin";
-    const isAssignedManager =
-      project.assignedManager?.toString() === req.user.id;
+    const isAdmin =
+      req.user.role === "admin";
 
-    if (!isAdmin && !isAssignedManager) {
+    const isAssignedManager =
+      project.assignedManager?.toString() ===
+      req.user.id;
+
+    if (
+      !isAdmin &&
+      !isAssignedManager
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to manage this project's team members",
+        message:
+          "You are not authorized to manage this project's team members",
       });
     }
 
-    // Ensure the member actually exists in this project's team
-    // before attempting to remove them.
-    const memberExists = project.teamMembers.some(
-      (id) => id.toString() === memberId
-    );
+    const memberExists =
+      project.teamMembers.some(
+        (id) =>
+          id.toString() === memberId
+      );
 
     if (!memberExists) {
       return res.status(404).json({
         success: false,
-        message: "This member is not part of the project's team",
+        message:
+          "This member is not part of the project's team",
       });
     }
 
-    project.teamMembers = project.teamMembers.filter(
-      (id) => id.toString() !== memberId
-    );
+    project.teamMembers =
+      project.teamMembers.filter(
+        (id) =>
+          id.toString() !== memberId
+      );
 
     await project.save();
 
     res.status(200).json({
       success: true,
-      message: "Team member removed successfully",
+      message:
+        "Team member removed successfully",
       project,
     });
   } catch (error) {
@@ -510,11 +591,13 @@ const removeTeamMember = async (req, res) => {
 };
 
 // Delete Project
-const deleteProject = async (req, res) => {
+const deleteProject = async (
+  req,
+  res
+) => {
   try {
-    // Fetch by ID first so we can authorize based on role
-    // (Admin / projectManager) before deleting.
-    const project = await Project.findById(req.params.id);
+    const project =
+      await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
@@ -523,28 +606,37 @@ const deleteProject = async (req, res) => {
       });
     }
 
-    // Authorization: Admin can delete any project. The creator
-    // (projectManager) can delete their own project.
-    const isAdmin = req.user.role === "admin";
-    const isProjectManager =
-      project.projectManager?.toString() === req.user.id;
+    const isAdmin =
+      req.user.role === "admin";
 
-    if (!isAdmin && !isProjectManager) {
+    const isProjectManager =
+      project.projectManager?.toString() ===
+      req.user.id;
+
+    if (
+      !isAdmin &&
+      !isProjectManager
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to delete this project",
+        message:
+          "You are not authorized to delete this project",
       });
     }
 
-    await Project.findByIdAndDelete(req.params.id);
+    await Project.findByIdAndDelete(
+      req.params.id
+    );
 
-    // Cascade delete: remove all tasks belonging to this project
-    // so no orphaned Task records remain.
-    await Task.deleteMany({ project: project._id });
+    // Cascade delete project tasks
+    await Task.deleteMany({
+      project: project._id,
+    });
 
     res.status(200).json({
       success: true,
-      message: "Project deleted successfully",
+      message:
+        "Project deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -554,15 +646,27 @@ const deleteProject = async (req, res) => {
   }
 };
 
-// Get Assigned Projects (Project Manager)
-const getAssignedProjects = async (req, res) => {
+// Get Assigned Projects
+const getAssignedProjects = async (
+  req,
+  res
+) => {
   try {
     const projects = await Project.find({
       assignedManager: req.user.id,
     })
-      .populate("projectManager", "name email")
-      .populate("assignedManager", "name email")
-      .populate("teamMembers", "name email role")
+      .populate(
+        "projectManager",
+        "name email"
+      )
+      .populate(
+        "assignedManager",
+        "name email"
+      )
+      .populate(
+        "teamMembers",
+        "name email role"
+      )
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -577,13 +681,27 @@ const getAssignedProjects = async (req, res) => {
     });
   }
 };
+
 // Get Project Workspace
-const getProjectWorkspace = async (req, res) => {
+const getProjectWorkspace = async (
+  req,
+  res
+) => {
   try {
-    const project = await Project.findById(req.params.id)
-      .populate("projectManager", "name email")
-      .populate("assignedManager", "name email")
-      .populate("teamMembers", "name email role");
+    const project =
+      await Project.findById(req.params.id)
+        .populate(
+          "projectManager",
+          "name email"
+        )
+        .populate(
+          "assignedManager",
+          "name email"
+        )
+        .populate(
+          "teamMembers",
+          "name email role"
+        );
 
     if (!project) {
       return res.status(404).json({
@@ -592,53 +710,74 @@ const getProjectWorkspace = async (req, res) => {
       });
     }
 
-  const isAdmin = req.user.role === "admin";
+    const isAdmin =
+      req.user.role === "admin";
 
-const isProjectManager =
-  project.projectManager?._id?.toString() === req.user.id;
+    const isProjectManager =
+      project.projectManager?._id?.toString() ===
+      req.user.id;
 
-const isAssignedManager =
-  project.assignedManager?._id?.toString() === req.user.id;
+    const isAssignedManager =
+      project.assignedManager?._id?.toString() ===
+      req.user.id;
 
-const isTeamMember =
-  req.user.role === "team_member" &&
-  project.teamMembers?.some(
-    (member) => member._id?.toString() === req.user.id
-  );
+    const isTeamMember =
+      req.user.role === "team_member" &&
+      project.teamMembers?.some(
+        (member) =>
+          member._id?.toString() ===
+          req.user.id
+      );
 
-if (
-  !isAdmin &&
-  !isProjectManager &&
-  !isAssignedManager &&
-  !isTeamMember
-) {
-  return res.status(403).json({
-    success: false,
-    message: "You are not authorized to view this project workspace",
-  });
-}
+    if (
+      !isAdmin &&
+      !isProjectManager &&
+      !isAssignedManager &&
+      !isTeamMember
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not authorized to view this project workspace",
+      });
+    }
 
     const tasks = await Task.find({
       project: project._id,
     })
-      .populate("assignedTo", "name email role")
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
       .sort({ createdAt: -1 });
 
     const totalTasks = tasks.length;
 
-    const completedTasks = tasks.filter(
-      (task) => task.status === "completed"
-    ).length;
+    const completedTasks =
+      tasks.filter(
+        (task) =>
+          task.status === "completed"
+      ).length;
 
-    const inProgressTasks = tasks.filter(
-      (task) => task.status === "in_progress"
-    ).length;
+    const inProgressTasks =
+      tasks.filter(
+        (task) =>
+          task.status === "in_progress"
+      ).length;
 
-    const pendingTasks = tasks.filter(
-      (task) =>
-        task.status === "todo" ||
-        task.status === "pending"
-    ).length;
+    // Review Tasks
+    const reviewTasks =
+      tasks.filter(
+        (task) =>
+          task.status === "review"
+      ).length;
+
+    // Pending Tasks
+    const pendingTasks =
+      tasks.filter(
+        (task) =>
+          task.status === "todo"
+      ).length;
 
     res.status(200).json({
       success: true,
@@ -648,41 +787,51 @@ if (
         totalTasks,
         completedTasks,
         inProgressTasks,
+        reviewTasks,
         pendingTasks,
       },
     });
-  } catch (error) {                          // ✅ catch block add kiya
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 // Project Manager Dashboard Stats
-const getProjectManagerStats = async (req, res) => {
+const getProjectManagerStats = async (
+  req,
+  res
+) => {
   try {
-    const totalProjects = await Project.countDocuments({
-      assignedManager: req.user.id,
-    });
+    const totalProjects =
+      await Project.countDocuments({
+        assignedManager: req.user.id,
+      });
 
-    const activeProjects = await Project.countDocuments({
-      assignedManager: req.user.id,
-      status: "active",
-    });
+    const activeProjects =
+      await Project.countDocuments({
+        assignedManager: req.user.id,
+        status: "active",
+      });
 
-    const completedProjects = await Project.countDocuments({
-      assignedManager: req.user.id,
-      status: "completed",
-    });
+    const completedProjects =
+      await Project.countDocuments({
+        assignedManager: req.user.id,
+        status: "completed",
+      });
 
-    const totalTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-    });
+    const totalTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+      });
 
-    const completedTasks = await Task.countDocuments({
-      assignedTo: req.user.id,
-      status: "completed",
-    });
+    const completedTasks =
+      await Task.countDocuments({
+        assignedTo: req.user.id,
+        status: "completed",
+      });
 
     res.status(200).json({
       success: true,
@@ -701,6 +850,7 @@ const getProjectManagerStats = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   createProject,
   getProjects,

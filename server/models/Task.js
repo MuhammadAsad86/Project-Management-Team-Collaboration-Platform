@@ -1,5 +1,45 @@
 const mongoose = require("mongoose");
 
+const taskStatusHistorySchema = new mongoose.Schema(
+  {
+    from: {
+      type: String,
+      enum: [
+        "todo",
+        "in_progress",
+        "review",
+        "completed",
+      ],
+      required: true,
+    },
+
+    to: {
+      type: String,
+      enum: [
+        "todo",
+        "in_progress",
+        "review",
+        "completed",
+      ],
+      required: true,
+    },
+
+    changedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    changedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: true,
+  }
+);
+
 const taskSchema = new mongoose.Schema(
   {
     title: {
@@ -40,8 +80,18 @@ const taskSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["todo", "in_progress", "completed"],
+      enum: [
+        "todo",
+        "in_progress",
+        "review",
+        "completed",
+      ],
       default: "todo",
+    },
+
+    statusHistory: {
+      type: [taskStatusHistorySchema],
+      default: [],
     },
 
     dueDate: {

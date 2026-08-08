@@ -54,7 +54,9 @@ const TeamMemberDashboard = () => {
     (task) => task.status === "in_progress"
   ).length;
 
-  const reviewTasks = 0;
+const reviewTasks = tasks.filter(
+  (task) => task.status === "review"
+).length;
 
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
