@@ -8,11 +8,20 @@ import {
   removeProjectMember,
 } from "../services/projectService";
 
+import {
+  getTaskComments,
+  addTaskComment,
+} from "../services/taskService";
+
 import { getUsers } from "../services/userService";
 import toast from "react-hot-toast";
 
 const ProjectDetails = () => {
   const { id } = useParams();
+
+  const user = JSON.parse(
+    localStorage.getItem("user")
+  );
 
   const [removingMember, setRemovingMember] =
     useState(null);
@@ -21,6 +30,7 @@ const ProjectDetails = () => {
   const [tasks, setTasks] = useState([]);
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [selectedMember, setSelectedMember] =
     useState(null);
 
@@ -34,6 +44,21 @@ const ProjectDetails = () => {
 
   const [activeTab, setActiveTab] =
     useState("overview");
+
+  // Discussion states
+  const [discussionTask, setDiscussionTask] =
+    useState(null);
+
+  const [comments, setComments] = useState([]);
+
+  const [commentMessage, setCommentMessage] =
+    useState("");
+
+  const [commentsLoading, setCommentsLoading] =
+    useState(false);
+
+  const [commentSubmitting, setCommentSubmitting] =
+    useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -66,6 +91,20 @@ const ProjectDetails = () => {
     fetchWorkspace();
   }, [id]);
 
+  const fetchWorkspace = async () => {
+    try {
+      const data =
+        await getProjectWorkspace(id);
+
+      setWorkspace(data);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load workspace"
+      );
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const data = await getUsers({
@@ -89,20 +128,6 @@ const ProjectDetails = () => {
       toast.error(
         error.response?.data?.message ||
           "Failed to load users"
-      );
-    }
-  };
-
-  const fetchWorkspace = async () => {
-    try {
-      const data =
-        await getProjectWorkspace(id);
-
-      setWorkspace(data);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to load workspace"
       );
     }
   };
@@ -136,6 +161,80 @@ const ProjectDetails = () => {
       );
     } finally {
       setRemovingMember(null);
+    }
+  };
+
+  // Get comments for selected task
+  const fetchTaskComments = async (taskId) => {
+    if (!taskId) return;
+
+    setCommentsLoading(true);
+
+    try {
+      const data =
+        await getTaskComments(taskId);
+
+      setComments(data.comments || []);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load comments"
+      );
+
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  // Add comment
+  const handleAddComment = async () => {
+    if (!discussionTask) {
+      toast.error("Please select a task");
+      return;
+    }
+
+    if (!commentMessage.trim()) {
+      toast.error(
+        "Comment message is required"
+      );
+      return;
+    }
+
+    if (
+      commentMessage.trim().length > 1000
+    ) {
+      toast.error(
+        "Comment cannot exceed 1000 characters"
+      );
+      return;
+    }
+
+    setCommentSubmitting(true);
+
+    try {
+      const data = await addTaskComment(
+        discussionTask._id,
+        commentMessage.trim()
+      );
+
+      toast.success(
+        data.message ||
+          "Comment added successfully"
+      );
+
+      setCommentMessage("");
+
+      await fetchTaskComments(
+        discussionTask._id
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to add comment"
+      );
+    } finally {
+      setCommentSubmitting(false);
     }
   };
 
@@ -365,7 +464,6 @@ const ProjectDetails = () => {
             </h2>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-              {/* Total */}
               <div className="rounded border p-4 text-center">
                 <p className="text-sm text-gray-500">
                   Total Tasks
@@ -376,7 +474,6 @@ const ProjectDetails = () => {
                 </p>
               </div>
 
-              {/* Completed */}
               <div className="rounded border p-4 text-center">
                 <p className="text-sm text-gray-500">
                   Completed
@@ -387,7 +484,6 @@ const ProjectDetails = () => {
                 </p>
               </div>
 
-              {/* In Progress */}
               <div className="rounded border p-4 text-center">
                 <p className="text-sm text-gray-500">
                   In Progress
@@ -398,7 +494,6 @@ const ProjectDetails = () => {
                 </p>
               </div>
 
-              {/* Review */}
               <div className="rounded border p-4 text-center">
                 <p className="text-sm text-gray-500">
                   Review
@@ -409,7 +504,6 @@ const ProjectDetails = () => {
                 </p>
               </div>
 
-              {/* Pending */}
               <div className="rounded border p-4 text-center">
                 <p className="text-sm text-gray-500">
                   Pending
@@ -534,13 +628,193 @@ const ProjectDetails = () => {
       {/* Discussion */}
       {activeTab === "discussion" && (
         <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-2xl font-bold">
-            Discussion
+          <h2 className="mb-6 text-2xl font-bold">
+            Task Discussion
           </h2>
 
-          <p className="text-gray-500">
-            Discussion feature coming soon.
-          </p>
+          {(() => {
+            const discussionTasks =
+              user?.role === "team_member"
+                ? tasks.filter(
+                    (task) =>
+                      task.assignedTo?._id ===
+                        user.id ||
+                      task.assignedTo === user.id
+                  )
+                : tasks;
+
+            return discussionTasks.length ===
+              0 ? (
+              <p className="text-gray-500">
+                No tasks available for discussion.
+              </p>
+            ) : (
+              <>
+                {/* Task List */}
+                <div className="space-y-3">
+                  {discussionTasks.map(
+                    (task) => (
+                      <button
+                        key={task._id}
+                        onClick={() => {
+                          setDiscussionTask(
+                            task
+                          );
+                          setComments([]);
+                          setCommentMessage(
+                            ""
+                          );
+                          fetchTaskComments(
+                            task._id
+                          );
+                        }}
+                        className={`w-full rounded-lg border p-4 text-left transition ${
+                          discussionTask?._id ===
+                          task._id
+                            ? "border-blue-500 bg-blue-50"
+                            : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <h3 className="font-semibold">
+                              {task.title}
+                            </h3>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                              {task.description ||
+                                "No description"}
+                            </p>
+                          </div>
+
+                          <span className="rounded bg-gray-100 px-2 py-1 text-xs capitalize">
+                            {task.status}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {/* Selected Task Discussion */}
+                {discussionTask && (
+                  <div className="mt-6 rounded-lg border p-5">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold">
+                        {discussionTask.title}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        Task Discussion
+                      </p>
+                    </div>
+
+                    {/* Comments */}
+                    {commentsLoading ? (
+                      <p className="text-gray-500">
+                        Loading comments...
+                      </p>
+                    ) : comments.length ===
+                      0 ? (
+                      <p className="text-gray-500">
+                        No comments yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {comments.map(
+                          (comment) => (
+                            <div
+                              key={
+                                comment._id
+                              }
+                              className="rounded-lg border bg-gray-50 p-4"
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-4">
+                                <div>
+                                  <p className="font-semibold">
+                                    {comment
+                                      .user
+                                      ?.name ||
+                                      "Unknown User"}
+                                  </p>
+
+                                  <p className="text-xs capitalize text-gray-500">
+                                    {comment.user?.role?.replace(
+                                      "_",
+                                      " "
+                                    ) ||
+                                      "Unknown Role"}
+                                  </p>
+                                </div>
+
+                                <span className="text-xs text-gray-400">
+                                  {new Date(
+                                    comment.createdAt
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+
+                              <p className="text-gray-700">
+                                {
+                                  comment.message
+                                }
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* Add Comment */}
+                    <div className="mt-6 border-t pt-5">
+                      <h4 className="mb-3 font-semibold">
+                        Add Comment
+                      </h4>
+
+                      <textarea
+                        value={
+                          commentMessage
+                        }
+                        onChange={(e) =>
+                          setCommentMessage(
+                            e.target.value
+                          )
+                        }
+                        placeholder="Write your comment..."
+                        maxLength={1000}
+                        rows={4}
+                        className="w-full rounded-lg border p-3 outline-none focus:border-blue-500"
+                      />
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-gray-500">
+                          {
+                            commentMessage.length
+                          }
+                          /1000
+                        </span>
+
+                        <button
+                          onClick={
+                            handleAddComment
+                          }
+                          disabled={
+                            commentSubmitting ||
+                            !commentMessage.trim()
+                          }
+                          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {commentSubmitting
+                            ? "Posting..."
+                            : "Post Comment"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -552,7 +826,6 @@ const ProjectDetails = () => {
           </h2>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-            {/* Total */}
             <div className="rounded border p-4 text-center">
               <p className="text-sm text-gray-500">
                 Total Tasks
@@ -563,7 +836,6 @@ const ProjectDetails = () => {
               </p>
             </div>
 
-            {/* Completed */}
             <div className="rounded border p-4 text-center">
               <p className="text-sm text-gray-500">
                 Completed
@@ -574,7 +846,6 @@ const ProjectDetails = () => {
               </p>
             </div>
 
-            {/* In Progress */}
             <div className="rounded border p-4 text-center">
               <p className="text-sm text-gray-500">
                 In Progress
@@ -585,7 +856,6 @@ const ProjectDetails = () => {
               </p>
             </div>
 
-            {/* Review */}
             <div className="rounded border p-4 text-center">
               <p className="text-sm text-gray-500">
                 Review
@@ -596,7 +866,6 @@ const ProjectDetails = () => {
               </p>
             </div>
 
-            {/* Pending */}
             <div className="rounded border p-4 text-center">
               <p className="text-sm text-gray-500">
                 Pending

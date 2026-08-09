@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+
 import { getAssignedTasks } from "../services/taskService";
 import { getProjects } from "../services/projectService";
 
 const TeamMemberDashboard = () => {
+  const navigate = useNavigate();
+
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +58,9 @@ const TeamMemberDashboard = () => {
     (task) => task.status === "in_progress"
   ).length;
 
-const reviewTasks = tasks.filter(
-  (task) => task.status === "review"
-).length;
+  const reviewTasks = tasks.filter(
+    (task) => task.status === "review"
+  ).length;
 
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
@@ -78,10 +82,8 @@ const reviewTasks = tasks.filter(
 
   if (loading) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <p className="text-gray-600">
-          Loading dashboard...
-        </p>
+      <div className="text-center text-lg">
+        Loading dashboard...
       </div>
     );
   }
@@ -95,7 +97,8 @@ const reviewTasks = tasks.filter(
         </h1>
 
         <p className="mt-1 text-gray-500">
-          Overview of your assigned projects and tasks.
+          Overview of your assigned projects and
+          tasks.
         </p>
       </div>
 
@@ -202,9 +205,15 @@ const reviewTasks = tasks.filter(
         ) : (
           <div className="space-y-3">
             {projects.map((project) => (
-              <div
+              <button
                 key={project._id}
-                className="rounded-lg border p-4"
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/projects/${project._id}`
+                  )
+                }
+                className="w-full rounded-lg border p-4 text-left transition hover:border-blue-500 hover:bg-blue-50"
               >
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
@@ -216,13 +225,17 @@ const reviewTasks = tasks.filter(
                       {project.description ||
                         "No description"}
                     </p>
+
+                    <p className="mt-2 text-xs text-blue-600">
+                      Click to open project
+                    </p>
                   </div>
 
                   <span className="w-fit rounded bg-blue-100 px-3 py-1 text-sm font-medium capitalize text-blue-700">
                     {project.status}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}

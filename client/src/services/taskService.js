@@ -79,3 +79,27 @@ export const updateTaskStatus = async (
 
   return response.data;
 };
+
+// Get Task Comments
+export const getTaskComments = async (taskId) => {
+  const response = await axiosInstance.get(
+    `/tasks/${taskId}/comments`
+  );
+
+  return response.data;
+};
+
+// Add Task Comment
+export const addTaskComment = async (
+  taskId,
+  message
+) => {
+  const response = await axiosInstance.post(
+    `/tasks/${taskId}/comments`,
+    {
+      message,
+    }
+  );
+
+  return response.data;
+};
