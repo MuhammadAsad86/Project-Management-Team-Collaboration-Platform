@@ -1,6 +1,7 @@
 const Task = require("../models/Task");
 const Project = require("../models/Project");
 const User = require("../models/User");
+const createNotification = require("../utils/notificationHelper");
 
 // Create Task
 const createTask = async (req, res) => {
@@ -23,8 +24,7 @@ const createTask = async (req, res) => {
       });
     }
 
-    const projectExists =
-      await Project.findById(project);
+    const projectExists = await Project.findById(project);
 
     if (!projectExists) {
       return res.status(404).json({
@@ -33,8 +33,7 @@ const createTask = async (req, res) => {
       });
     }
 
-    const isAdmin =
-      req.user.role === "admin";
+    const isAdmin = req.user.role === "admin";
 
     const isAssignedManager =
       projectExists.assignedManager?.toString() ===
@@ -48,14 +47,12 @@ const createTask = async (req, res) => {
       });
     }
 
-    const userExists =
-      await User.findById(assignedTo);
+    const userExists = await User.findById(assignedTo);
 
     if (!userExists) {
       return res.status(404).json({
         success: false,
-        message:
-          "Assigned user not found",
+        message: "Assigned user not found",
       });
     }
 
@@ -70,10 +67,19 @@ const createTask = async (req, res) => {
       dueDate,
     });
 
+    // Notify assigned Team Member
+    await createNotification({
+      user: assignedTo,
+      title: "New Task Assigned",
+      message: `You have been assigned a new task: ${task.title}`,
+      type: "task_assigned",
+      relatedTask: task._id,
+      relatedProject: task.project,
+    });
+
     res.status(201).json({
       success: true,
-      message:
-        "Task created successfully",
+      message: "Task created successfully",
       task,
     });
   } catch (error) {
@@ -102,14 +108,10 @@ const getTasks = async (req, res) => {
 
     // Project Manager only sees tasks
     // belonging to their assigned projects.
-    if (
-      req.user.role ===
-      "project_manager"
-    ) {
-      const projects =
-        await Project.find({
-          assignedManager: req.user.id,
-        }).select("_id");
+    if (req.user.role === "project_manager") {
+      const projects = await Project.find({
+        assignedManager: req.user.id,
+      }).select("_id");
 
       query.project = {
         $in: projects.map(
@@ -169,51 +171,39 @@ const getTasks = async (req, res) => {
         };
     }
 
-    const currentPage =
-      Number(page);
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+    const skip = (currentPage - 1) * perPage;
 
-    const perPage =
-      Number(limit);
+    const totalRecords = await Task.countDocuments(query);
 
-    const skip =
-      (currentPage - 1) *
-      perPage;
-
-    const totalRecords =
-      await Task.countDocuments(query);
-
-    const tasks =
-      await Task.find(query)
-        .populate(
-          "project",
-          "name assignedManager"
-        )
-        .populate(
-          "assignedTo",
-          "name email role"
-        )
-        .populate(
-          "createdBy",
-          "name email"
-        )
-        .sort(sortOption)
-        .skip(skip)
-        .limit(perPage);
+    const tasks = await Task.find(query)
+      .populate(
+        "project",
+        "name assignedManager"
+      )
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
+      .populate(
+        "createdBy",
+        "name email"
+      )
+      .sort(sortOption)
+      .skip(skip)
+      .limit(perPage);
 
     res.status(200).json({
       success: true,
       totalRecords,
       currentPage,
-      totalPages:
-        Math.ceil(
-          totalRecords / perPage
-        ),
+      totalPages: Math.ceil(
+        totalRecords / perPage
+      ),
       hasNextPage:
-        currentPage *
-          perPage <
-        totalRecords,
-      hasPreviousPage:
-        currentPage > 1,
+        currentPage * perPage < totalRecords,
+      hasPreviousPage: currentPage > 1,
       count: tasks.length,
       tasks,
     });
@@ -226,27 +216,23 @@ const getTasks = async (req, res) => {
 };
 
 // Get Single Task
-const getTaskById = async (
-  req,
-  res
-) => {
+const getTaskById = async (req, res) => {
   try {
-    const task =
-      await Task.findById(
-        req.params.id
+    const task = await Task.findById(
+      req.params.id
+    )
+      .populate(
+        "project",
+        "name assignedManager"
       )
-        .populate(
-          "project",
-          "name assignedManager"
-        )
-        .populate(
-          "assignedTo",
-          "name email role"
-        )
-        .populate(
-          "createdBy",
-          "name email"
-        );
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
+      .populate(
+        "createdBy",
+        "name email"
+      );
 
     if (!task) {
       return res.status(404).json({
@@ -255,22 +241,17 @@ const getTaskById = async (
       });
     }
 
-    const isAdmin =
-      req.user.role === "admin";
+    const isAdmin = req.user.role === "admin";
 
     const isProjectManager =
-      req.user.role ===
-        "project_manager" &&
+      req.user.role === "project_manager" &&
       task.project?.assignedManager
-        ?.toString() ===
-        req.user.id;
+        ?.toString() === req.user.id;
 
     const isAssignedTeamMember =
-      req.user.role ===
-        "team_member" &&
+      req.user.role === "team_member" &&
       task.assignedTo?._id
-        ?.toString() ===
-        req.user.id;
+        ?.toString() === req.user.id;
 
     if (
       !isAdmin &&
@@ -297,18 +278,14 @@ const getTaskById = async (
 
 // Update Task
 // Admin + assigned Project Manager
-const updateTask = async (
-  req,
-  res
-) => {
+const updateTask = async (req, res) => {
   try {
-    const task =
-      await Task.findById(
-        req.params.id
-      ).populate(
-        "project",
-        "name assignedManager"
-      );
+    const task = await Task.findById(
+      req.params.id
+    ).populate(
+      "project",
+      "name assignedManager"
+    );
 
     if (!task) {
       return res.status(404).json({
@@ -317,20 +294,14 @@ const updateTask = async (
       });
     }
 
-    const isAdmin =
-      req.user.role === "admin";
+    const isAdmin = req.user.role === "admin";
 
     const isAssignedManager =
-      req.user.role ===
-        "project_manager" &&
+      req.user.role === "project_manager" &&
       task.project?.assignedManager
-        ?.toString() ===
-        req.user.id;
+        ?.toString() === req.user.id;
 
-    if (
-      !isAdmin &&
-      !isAssignedManager
-    ) {
+    if (!isAdmin && !isAssignedManager) {
       return res.status(403).json({
         success: false,
         message:
@@ -361,8 +332,7 @@ const updateTask = async (
 
     res.status(200).json({
       success: true,
-      message:
-        "Task updated successfully",
+      message: "Task updated successfully",
       task,
     });
   } catch (error) {
@@ -375,18 +345,14 @@ const updateTask = async (
 
 // Delete Task
 // Admin + assigned Project Manager
-const deleteTask = async (
-  req,
-  res
-) => {
+const deleteTask = async (req, res) => {
   try {
-    const task =
-      await Task.findById(
-        req.params.id
-      ).populate(
-        "project",
-        "name assignedManager"
-      );
+    const task = await Task.findById(
+      req.params.id
+    ).populate(
+      "project",
+      "name assignedManager"
+    );
 
     if (!task) {
       return res.status(404).json({
@@ -395,20 +361,14 @@ const deleteTask = async (
       });
     }
 
-    const isAdmin =
-      req.user.role === "admin";
+    const isAdmin = req.user.role === "admin";
 
     const isAssignedManager =
-      req.user.role ===
-        "project_manager" &&
+      req.user.role === "project_manager" &&
       task.project?.assignedManager
-        ?.toString() ===
-        req.user.id;
+        ?.toString() === req.user.id;
 
-    if (
-      !isAdmin &&
-      !isAssignedManager
-    ) {
+    if (!isAdmin && !isAssignedManager) {
       return res.status(403).json({
         success: false,
         message:
@@ -420,8 +380,7 @@ const deleteTask = async (
 
     res.status(200).json({
       success: true,
-      message:
-        "Task deleted successfully",
+      message: "Task deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -433,10 +392,7 @@ const deleteTask = async (
 
 // Get Assigned Tasks
 // Team Member only
-const getAssignedTasks = async (
-  req,
-  res
-) => {
+const getAssignedTasks = async (req, res) => {
   try {
     const {
       search,
@@ -495,53 +451,37 @@ const getAssignedTasks = async (
         };
     }
 
-    const currentPage =
-      Number(page);
-
-    const perPage =
-      Number(limit);
-
-    const skip =
-      (currentPage - 1) *
-      perPage;
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+    const skip = (currentPage - 1) * perPage;
 
     const totalRecords =
-      await Task.countDocuments(
-        query
-      );
+      await Task.countDocuments(query);
 
-    const tasks =
-      await Task.find(query)
-        .populate(
-          "project",
-          "name"
-        )
-        .populate(
-          "assignedTo",
-          "name email role"
-        )
-        .populate(
-          "createdBy",
-          "name email"
-        )
-        .sort(sortOption)
-        .skip(skip)
-        .limit(perPage);
+    const tasks = await Task.find(query)
+      .populate("project", "name")
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
+      .populate(
+        "createdBy",
+        "name email"
+      )
+      .sort(sortOption)
+      .skip(skip)
+      .limit(perPage);
 
     res.status(200).json({
       success: true,
       totalRecords,
       currentPage,
-      totalPages:
-        Math.ceil(
-          totalRecords / perPage
-        ),
+      totalPages: Math.ceil(
+        totalRecords / perPage
+      ),
       hasNextPage:
-        currentPage *
-          perPage <
-        totalRecords,
-      hasPreviousPage:
-        currentPage > 1,
+        currentPage * perPage < totalRecords,
+      hasPreviousPage: currentPage > 1,
       count: tasks.length,
       tasks,
     });
@@ -555,10 +495,7 @@ const getAssignedTasks = async (
 
 // Update Task Status
 // Assigned Team Member only
-const updateTaskStatus = async (
-  req,
-  res
-) => {
+const updateTaskStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -569,9 +506,7 @@ const updateTaskStatus = async (
       "completed",
     ];
 
-    if (
-      !allowedStatuses.includes(status)
-    ) {
+    if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message: "Invalid task status",
@@ -634,6 +569,28 @@ const updateTaskStatus = async (
 
     await task.save();
 
+    // Find the Project Manager responsible
+    // for this project.
+    const project = await Project.findById(
+      task.project
+    ).select("assignedManager");
+
+    const projectManagerId =
+      project?.assignedManager;
+
+    // Notify the Project Manager
+    if (projectManagerId) {
+      await createNotification({
+        user: projectManagerId,
+        title: "Task Status Updated",
+        message:
+          `Task "${task.title}" status changed from ${currentStatus} to ${status}.`,
+        type: "task_status_updated",
+        relatedTask: task._id,
+        relatedProject: task.project,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message:
@@ -649,10 +606,7 @@ const updateTaskStatus = async (
 };
 
 // Team Member Dashboard Stats
-const getMyTaskStats = async (
-  req,
-  res
-) => {
+const getMyTaskStats = async (req, res) => {
   try {
     const totalTasks =
       await Task.countDocuments({

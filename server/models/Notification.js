@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema(
   {
-    recipient: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -15,7 +15,7 @@ const notificationSchema = new mongoose.Schema(
     },
 
     message: {
-    type: String,
+      type: String,
       required: true,
       trim: true,
     },
@@ -24,14 +24,26 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "task_assigned",
-        "task_updated",
-        "comment_added",
-        "deadline_reminder",
+        "task_status_updated",
+        "new_comment",
+        "deadline_approaching",
       ],
       required: true,
     },
 
-    isRead: {
+    relatedTask: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+      default: null,
+    },
+
+    relatedProject: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      default: null,
+    },
+
+    read: {
       type: Boolean,
       default: false,
     },
@@ -41,4 +53,7 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Notification", notificationSchema);
+module.exports = mongoose.model(
+  "Notification",
+  notificationSchema
+);

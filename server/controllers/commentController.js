@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
 const Comment = require("../models/Comment");
 const Task = require("../models/Task");
-
-// Check whether the authenticated user can access
-// the discussion of a specific task.
+const createNotification = require("../utils/notificationHelper");
 const canAccessTask = (task, user) => {
   // Admin can access all task discussions.
   if (user.role === "admin") {
@@ -20,9 +18,13 @@ const canAccessTask = (task, user) => {
   }
 
   // Team Member can access only their own assigned task.
+  const assignedUserId =
+    task.assignedTo?._id?.toString() ||
+    task.assignedTo?.toString();
+
   if (
     user.role === "team_member" &&
-    task.assignedTo?.toString() === user.id
+    assignedUserId === user.id
   ) {
     return true;
   }
@@ -64,11 +66,10 @@ const createComment = async (req, res) => {
     }
 
     // Find task and project information
-    // required for authorization.
-    const task = await Task.findById(taskId).populate(
-      "project",
-      "assignedManager"
-    );
+    // required for authorization and notifications.
+    const task = await Task.findById(taskId)
+      .populate("project", "name assignedManager")
+      .populate("assignedTo", "name email role");
 
     if (!task) {
       return res.status(404).json({
@@ -86,17 +87,50 @@ const createComment = async (req, res) => {
       });
     }
 
-    // IMPORTANT:
-    // User comes from authenticated JWT, not frontend input.
+    // User comes from authenticated JWT,
+    // not frontend input.
     const comment = await Comment.create({
       task: task._id,
       user: req.user.id,
       message: message.trim(),
     });
 
+    // Determine the correct notification recipient.
+    let notificationRecipient = null;
+
+    // Team Member comment → notify Project Manager
+    if (req.user.role === "team_member") {
+      notificationRecipient = task.project?.assignedManager;
+    }
+
+    // Project Manager comment → notify assigned Team Member
+    else if (req.user.role === "project_manager") {
+      notificationRecipient =
+        task.assignedTo?._id || task.assignedTo;
+    }
+
+    // Create notification only when there is
+    // a valid recipient and it is not the commenter.
+    if (
+      notificationRecipient &&
+      notificationRecipient.toString() !==
+        req.user.id.toString()
+    ) {
+      await createNotification({
+        user: notificationRecipient,
+        title: "New Comment",
+        message: `A new comment was added to task "${task.title}".`,
+        type: "new_comment",
+        relatedTask: task._id,
+        relatedProject:
+          task.project?._id || task.project,
+      });
+    }
+
     // Return populated comment.
-    const populatedComment = await Comment.findById(comment._id)
-      .populate("user", "name email role");
+    const populatedComment = await Comment.findById(
+      comment._id
+    ).populate("user", "name email role");
 
     res.status(201).json({
       success: true,
@@ -127,7 +161,7 @@ const getTaskComments = async (req, res) => {
     // Find task and required authorization information.
     const task = await Task.findById(taskId).populate(
       "project",
-      "assignedManager"
+      "name assignedManager"
     );
 
     if (!task) {
