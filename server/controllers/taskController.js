@@ -120,11 +120,22 @@ const getTasks = async (req, res) => {
       };
     }
 
+    // Search by task title OR description
     if (search) {
-      query.title = {
-        $regex: search,
-        $options: "i",
-      };
+      query.$or = [
+        {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          description: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
     }
 
     if (status) {
@@ -144,12 +155,31 @@ const getTasks = async (req, res) => {
       query.assignedTo = assignedTo;
     }
 
+    // Sorting
     let sortOption = {};
 
     switch (sort) {
-      case "title":
+      case "newest":
+        sortOption = {
+          createdAt: -1,
+        };
+        break;
+
+      case "oldest":
+        sortOption = {
+          createdAt: 1,
+        };
+        break;
+
+      case "title_asc":
         sortOption = {
           title: 1,
+        };
+        break;
+
+      case "title_desc":
+        sortOption = {
+          title: -1,
         };
         break;
 
@@ -162,6 +192,12 @@ const getTasks = async (req, res) => {
       case "dueDate":
         sortOption = {
           dueDate: 1,
+        };
+        break;
+
+      case "updatedAt":
+        sortOption = {
+          updatedAt: -1,
         };
         break;
 

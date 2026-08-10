@@ -135,9 +135,10 @@ const getProjects = async (req, res) => {
     }
 
     if (assignedManager) {
-      query.assignedManager = assignedManager;
-    }
-
+  if (req.user.role === "admin") {
+    query.assignedManager = assignedManager;
+  }
+}
     let sortOption = {};
 
     switch (sort) {

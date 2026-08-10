@@ -9,6 +9,8 @@ import {
   updateTaskStatus,
 } from "../services/taskService";
 
+import { getUsers } from "../services/userService";
+
 import CreateTaskModal from "../components/tasks/CreateTaskModal";
 import TaskFilters from "../components/tasks/TaskFilters";
 
@@ -20,7 +22,12 @@ const Tasks = () => {
   const isTeamMember =
     currentUser?.role === "team_member";
 
+  const isAdmin =
+    currentUser?.role === "admin";
+
   const [tasks, setTasks] = useState([]);
+
+  const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +54,22 @@ const Tasks = () => {
     status: "",
     priority: "",
     sort: "",
+    assignedTo: "",
   });
+
+  // Debounced Search
+  const [debouncedSearch, setDebouncedSearch] =
+    useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [filters.search]);
 
   // Pagination
   const [pagination, setPagination] = useState({
@@ -68,30 +90,38 @@ const Tasks = () => {
     try {
       setLoading(true);
 
+      const requestFilters = {
+        search: debouncedSearch,
+        status: filters.status,
+        priority: filters.priority,
+        sort: filters.sort,
+        assignedTo: filters.assignedTo,
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+
       let response;
 
       if (isTeamMember) {
         // Team Member:
         // Backend determines ownership using req.user.id.
-        response = await getAssignedTasks({
-          ...filters,
-          page: pagination.page,
-          limit: pagination.limit,
-        });
+        response = await getAssignedTasks(
+          requestFilters
+        );
       } else {
         // Admin + Project Manager
-        response = await getTasks({
-          ...filters,
-          page: pagination.page,
-          limit: pagination.limit,
-        });
+        response = await getTasks(
+          requestFilters
+        );
       }
 
       setTasks(response.tasks || []);
 
       setPaginationInfo({
-        currentPage: response.currentPage || 1,
-        totalPages: response.totalPages || 1,
+        currentPage:
+          response.currentPage || 1,
+        totalPages:
+          response.totalPages || 1,
         hasNextPage:
           response.hasNextPage || false,
         hasPreviousPage:
@@ -107,7 +137,11 @@ const Tasks = () => {
     }
   }, [
     isTeamMember,
-    filters,
+    filters.status,
+    filters.priority,
+    filters.sort,
+    filters.assignedTo,
+    debouncedSearch,
     pagination.page,
     pagination.limit,
   ]);
@@ -116,8 +150,36 @@ const Tasks = () => {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Fetch Users
+  // Only Admin needs the user list
+  // for the Assignee filter.
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!isAdmin) return;
+
+      try {
+        const response = await getUsers({
+          limit: 100,
+        });
+
+        setUsers(
+          response.users || []
+        );
+      } catch (error) {
+        console.error(
+          "Users API Error:",
+          error
+        );
+      }
+    };
+
+    fetchUsers();
+  }, [isAdmin]);
+
   // Filter Change
-  const handleFilterChange = (newFilters) => {
+  const handleFilterChange = (
+    newFilters
+  ) => {
     setFilters(newFilters);
 
     setPagination((prev) => ({
@@ -127,7 +189,9 @@ const Tasks = () => {
   };
 
   // Create Task
-  const handleCreateTask = async (formData) => {
+  const handleCreateTask = async (
+    formData
+  ) => {
     try {
       setCreating(true);
 
@@ -151,7 +215,9 @@ const Tasks = () => {
   };
 
   // Update Task
-  const handleUpdateTask = async (formData) => {
+  const handleUpdateTask = async (
+    formData
+  ) => {
     try {
       setEditing(true);
 
@@ -179,7 +245,9 @@ const Tasks = () => {
   };
 
   // Delete Task
-  const handleDeleteTask = async (id) => {
+  const handleDeleteTask = async (
+    id
+  ) => {
     try {
       const confirmDelete =
         window.confirm(
@@ -260,6 +328,10 @@ const Tasks = () => {
       <TaskFilters
         filters={filters}
         setFilters={handleFilterChange}
+        users={
+          isAdmin ? users : []
+        }
+        isAdmin={isAdmin}
       />
 
       {tasks.length === 0 ? (
@@ -317,7 +389,8 @@ const Tasks = () => {
               </div>
 
               {/* Status History */}
-              {task.statusHistory?.length > 0 && (
+              {task.statusHistory?.length >
+                0 && (
                 <div className="mt-5 rounded-lg border p-4">
                   <h3 className="mb-3 font-semibold">
                     Status History
@@ -328,17 +401,26 @@ const Tasks = () => {
                       .reverse()
                       .map((history) => (
                         <div
-                          key={history._id}
+                          key={
+                            history._id
+                          }
                           className="border-l-2 pl-3"
                         >
                           <p className="font-medium">
-                            {history.from} →{" "}
-                            {history.to}
+                            {
+                              history.from
+                            }{" "}
+                            →{" "}
+                            {
+                              history.to
+                            }
                           </p>
 
                           <p className="text-sm text-gray-500">
                             Changed by:{" "}
-                            {history.changedBy}
+                            {
+                              history.changedBy
+                            }
                           </p>
 
                           <p className="text-sm text-gray-500">
@@ -385,8 +467,12 @@ const Tasks = () => {
                 {!isTeamMember && (
                   <button
                     onClick={() => {
-                      setSelectedTask(task);
-                      setShowEditModal(true);
+                      setSelectedTask(
+                        task
+                      );
+                      setShowEditModal(
+                        true
+                      );
                     }}
                     className="bg-yellow-500 px-3 py-1 text-white"
                   >
@@ -420,7 +506,8 @@ const Tasks = () => {
           onClick={() =>
             setPagination((prev) => ({
               ...prev,
-              page: prev.page - 1,
+              page:
+                prev.page - 1,
             }))
           }
           className="rounded bg-gray-200 px-4 py-2"
@@ -430,9 +517,13 @@ const Tasks = () => {
 
         <span>
           Page{" "}
-          {paginationInfo.currentPage}{" "}
+          {
+            paginationInfo.currentPage
+          }{" "}
           of{" "}
-          {paginationInfo.totalPages}
+          {
+            paginationInfo.totalPages
+          }
         </span>
 
         <button
@@ -442,7 +533,8 @@ const Tasks = () => {
           onClick={() =>
             setPagination((prev) => ({
               ...prev,
-              page: prev.page + 1,
+              page:
+                prev.page + 1,
             }))
           }
           className="rounded bg-blue-600 px-4 py-2 text-white"
@@ -452,21 +544,35 @@ const Tasks = () => {
       </div>
 
       <CreateTaskModal
-        isOpen={showCreateModal}
-        onClose={() =>
-          setShowCreateModal(false)
+        isOpen={
+          showCreateModal
         }
-        onSubmit={handleCreateTask}
+        onClose={() =>
+          setShowCreateModal(
+            false
+          )
+        }
+        onSubmit={
+          handleCreateTask
+        }
         loading={creating}
       />
 
       <CreateTaskModal
-        isOpen={showEditModal}
+        isOpen={
+          showEditModal
+        }
         onClose={() => {
-          setShowEditModal(false);
-          setSelectedTask(null);
+          setShowEditModal(
+            false
+          );
+          setSelectedTask(
+            null
+          );
         }}
-        onSubmit={handleUpdateTask}
+        onSubmit={
+          handleUpdateTask
+        }
         loading={editing}
         title="Edit Task"
         initialData={

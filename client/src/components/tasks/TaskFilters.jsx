@@ -1,6 +1,8 @@
 const TaskFilters = ({
   filters,
   setFilters,
+  users = [],
+  isAdmin = false,
 }) => {
   const handleChange = (e) => {
     setFilters({
@@ -10,7 +12,7 @@ const TaskFilters = ({
   };
 
   return (
-    <div className="grid gap-4 rounded-lg bg-white p-5 shadow md:grid-cols-4">
+    <div className="mb-6 flex flex-wrap gap-3">
       {/* Search */}
       <input
         type="text"
@@ -73,6 +75,34 @@ const TaskFilters = ({
         </option>
       </select>
 
+      {/* Assignee Filter - Admin Only */}
+      {isAdmin && (
+        <select
+          name="assignedTo"
+          value={filters.assignedTo}
+          onChange={handleChange}
+          className="rounded-lg border px-3 py-2"
+        >
+          <option value="">
+            All Assignees
+          </option>
+
+          {users
+            .filter(
+              (user) =>
+                user.role === "team_member"
+            )
+            .map((user) => (
+              <option
+                key={user._id}
+                value={user._id}
+              >
+                {user.name}
+              </option>
+            ))}
+        </select>
+      )}
+
       {/* Sorting */}
       <select
         name="sort"
@@ -80,12 +110,20 @@ const TaskFilters = ({
         onChange={handleChange}
         className="rounded-lg border px-3 py-2"
       >
-        <option value="">
-          Latest
+        <option value="newest">
+          Newest
         </option>
 
-        <option value="title">
-          Title
+        <option value="oldest">
+          Oldest
+        </option>
+
+        <option value="title_asc">
+          Title A-Z
+        </option>
+
+        <option value="title_desc">
+          Title Z-A
         </option>
 
         <option value="priority">
@@ -94,6 +132,10 @@ const TaskFilters = ({
 
         <option value="dueDate">
           Due Date
+        </option>
+
+        <option value="updatedAt">
+          Updated Date
         </option>
       </select>
     </div>
