@@ -1,7 +1,21 @@
+const mongoose = require("mongoose");
 const Task = require("../models/Task");
 const Project = require("../models/Project");
 const User = require("../models/User");
 const createNotification = require("../utils/notificationHelper");
+
+const allowedPriorities = [
+  "low",
+  "medium",
+  "high",
+];
+
+const allowedStatuses = [
+  "todo",
+  "in_progress",
+  "review",
+  "completed",
+];
 
 // Create Task
 const createTask = async (req, res) => {
@@ -16,11 +30,69 @@ const createTask = async (req, res) => {
       dueDate,
     } = req.body;
 
-    if (!title || !project || !assignedTo) {
+    if (
+      typeof title !== "string" ||
+      title.trim().length < 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Task title must be at least 2 characters",
+      });
+    }
+
+    if (!project || !assignedTo) {
       return res.status(400).json({
         success: false,
         message:
-          "Title, project and assigned user are required",
+          "Project and assigned user are required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(project)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid assigned user ID",
+      });
+    }
+
+    if (
+      priority !== undefined &&
+      !allowedPriorities.includes(priority)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task priority",
+      });
+    }
+
+    // New tasks must always start from todo.
+    if (
+      status !== undefined &&
+      status !== "todo"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "New tasks must start with todo status",
+      });
+    }
+
+    if (
+      dueDate !== undefined &&
+      dueDate !== null &&
+      dueDate !== "" &&
+      Number.isNaN(new Date(dueDate).getTime())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid due date",
       });
     }
 
@@ -36,8 +108,9 @@ const createTask = async (req, res) => {
     const isAdmin = req.user.role === "admin";
 
     const isAssignedManager =
+      req.user.role === "project_manager" &&
       projectExists.assignedManager?.toString() ===
-      req.user.id;
+        req.user.id;
 
     if (!isAdmin && !isAssignedManager) {
       return res.status(403).json({
@@ -56,18 +129,41 @@ const createTask = async (req, res) => {
       });
     }
 
+    // Tasks can only be assigned to Team Members.
+    if (userExists.role !== "team_member") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Tasks can only be assigned to Team Members",
+      });
+    }
+
+    // Assigned Team Member must belong to this project.
+    const isProjectTeamMember =
+      projectExists.teamMembers?.some(
+        (memberId) =>
+          memberId.toString() === assignedTo
+      );
+
+    if (!isProjectTeamMember) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Assigned user is not a member of this project team",
+      });
+    }
+
     const task = await Task.create({
-      title,
+      title: title.trim(),
       description,
       project,
       assignedTo,
       createdBy: req.user.id,
-      priority,
-      status,
+      priority: priority || "medium",
+      status: "todo",
       dueDate,
     });
 
-    // Notify assigned Team Member
     await createNotification({
       user: assignedTo,
       title: "New Task Assigned",
@@ -91,7 +187,6 @@ const createTask = async (req, res) => {
 };
 
 // Get All Tasks
-// Admin + Project Manager only
 const getTasks = async (req, res) => {
   try {
     const {
@@ -104,10 +199,63 @@ const getTasks = async (req, res) => {
       limit = 10,
     } = req.query;
 
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+
+    if (
+      !Number.isInteger(currentPage) ||
+      currentPage < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be a positive integer",
+      });
+    }
+
+    if (
+      !Number.isInteger(perPage) ||
+      perPage < 1 ||
+      perPage > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit must be between 1 and 100",
+      });
+    }
+
+    if (
+      assignedTo &&
+      !mongoose.Types.ObjectId.isValid(assignedTo)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid assigned user ID",
+      });
+    }
+
+    if (
+      status &&
+      !allowedStatuses.includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task status",
+      });
+    }
+
+    if (
+      priority &&
+      !allowedPriorities.includes(priority)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task priority",
+      });
+    }
+
     let query = {};
 
-    // Project Manager only sees tasks
-    // belonging to their assigned projects.
     if (req.user.role === "project_manager") {
       const projects = await Project.find({
         assignedManager: req.user.id,
@@ -120,7 +268,6 @@ const getTasks = async (req, res) => {
       };
     }
 
-    // Search by task title OR description
     if (search) {
       query.$or = [
         {
@@ -146,8 +293,6 @@ const getTasks = async (req, res) => {
       query.priority = priority;
     }
 
-    // Only Admin can arbitrarily filter
-    // by assignedTo.
     if (
       assignedTo &&
       req.user.role === "admin"
@@ -155,7 +300,6 @@ const getTasks = async (req, res) => {
       query.assignedTo = assignedTo;
     }
 
-    // Sorting
     let sortOption = {};
 
     switch (sort) {
@@ -207,11 +351,10 @@ const getTasks = async (req, res) => {
         };
     }
 
-    const currentPage = Number(page);
-    const perPage = Number(limit);
     const skip = (currentPage - 1) * perPage;
 
-    const totalRecords = await Task.countDocuments(query);
+    const totalRecords =
+      await Task.countDocuments(query);
 
     const tasks = await Task.find(query)
       .populate(
@@ -254,6 +397,17 @@ const getTasks = async (req, res) => {
 // Get Single Task
 const getTaskById = async (req, res) => {
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID",
+      });
+    }
+
     const task = await Task.findById(
       req.params.id
     )
@@ -313,14 +467,24 @@ const getTaskById = async (req, res) => {
 };
 
 // Update Task
-// Admin + assigned Project Manager
 const updateTask = async (req, res) => {
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID",
+      });
+    }
+
     const task = await Task.findById(
       req.params.id
     ).populate(
       "project",
-      "name assignedManager"
+      "name assignedManager teamMembers"
     );
 
     if (!task) {
@@ -345,10 +509,108 @@ const updateTask = async (req, res) => {
       });
     }
 
-    // Status MUST NOT be changed through
-    // the normal PUT endpoint.
-    // Status changes must use:
-    // PATCH /tasks/:id/status
+    if (
+      req.body.title !== undefined &&
+      (
+        typeof req.body.title !== "string" ||
+        req.body.title.trim().length < 2
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Task title must be at least 2 characters",
+      });
+    }
+
+    if (
+      req.body.assignedTo !== undefined &&
+      !mongoose.Types.ObjectId.isValid(
+        req.body.assignedTo
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid assigned user ID",
+      });
+    }
+
+    if (
+      req.body.assignedTo !== undefined
+    ) {
+      const assignedUser =
+        await User.findById(
+          req.body.assignedTo
+        );
+
+      if (!assignedUser) {
+        return res.status(404).json({
+          success: false,
+          message: "Assigned user not found",
+        });
+      }
+
+      if (
+        assignedUser.role !== "team_member"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Tasks can only be assigned to Team Members",
+        });
+      }
+
+      const isProjectTeamMember =
+        task.project?.teamMembers?.some(
+          (memberId) =>
+            memberId.toString() ===
+            req.body.assignedTo
+        );
+
+      if (!isProjectTeamMember) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Assigned user is not a member of this project team",
+        });
+      }
+    }
+
+    if (
+      req.body.priority !== undefined &&
+      !allowedPriorities.includes(
+        req.body.priority
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task priority",
+      });
+    }
+
+    // Status must only be changed through
+    // PATCH /tasks/:id/status.
+    if (req.body.status !== undefined) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Task status must be changed through the status endpoint",
+      });
+    }
+
+    if (
+      req.body.dueDate !== undefined &&
+      req.body.dueDate !== null &&
+      req.body.dueDate !== "" &&
+      Number.isNaN(
+        new Date(req.body.dueDate).getTime()
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid due date",
+      });
+    }
 
     const allowedFields = [
       "title",
@@ -360,7 +622,10 @@ const updateTask = async (req, res) => {
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        task[field] = req.body[field];
+        task[field] =
+          field === "title"
+            ? req.body[field].trim()
+            : req.body[field];
       }
     }
 
@@ -380,9 +645,19 @@ const updateTask = async (req, res) => {
 };
 
 // Delete Task
-// Admin + assigned Project Manager
 const deleteTask = async (req, res) => {
   try {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID",
+      });
+    }
+
     const task = await Task.findById(
       req.params.id
     ).populate(
@@ -427,7 +702,6 @@ const deleteTask = async (req, res) => {
 };
 
 // Get Assigned Tasks
-// Team Member only
 const getAssignedTasks = async (req, res) => {
   try {
     const {
@@ -438,6 +712,51 @@ const getAssignedTasks = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
+
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+
+    if (
+      !Number.isInteger(currentPage) ||
+      currentPage < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be a positive integer",
+      });
+    }
+
+    if (
+      !Number.isInteger(perPage) ||
+      perPage < 1 ||
+      perPage > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Limit must be between 1 and 100",
+      });
+    }
+
+    if (
+      status &&
+      !allowedStatuses.includes(status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task status",
+      });
+    }
+
+    if (
+      priority &&
+      !allowedPriorities.includes(priority)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task priority",
+      });
+    }
 
     const query = {
       assignedTo: req.user.id,
@@ -487,8 +806,6 @@ const getAssignedTasks = async (req, res) => {
         };
     }
 
-    const currentPage = Number(page);
-    const perPage = Number(limit);
     const skip = (currentPage - 1) * perPage;
 
     const totalRecords =
@@ -530,17 +847,20 @@ const getAssignedTasks = async (req, res) => {
 };
 
 // Update Task Status
-// Assigned Team Member only
 const updateTaskStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID",
+      });
+    }
 
-    const allowedStatuses = [
-      "todo",
-      "in_progress",
-      "review",
-      "completed",
-    ];
+    const { status } = req.body;
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -564,7 +884,6 @@ const updateTaskStatus = async (req, res) => {
 
     const currentStatus = task.status;
 
-    // Prevent same status update
     if (currentStatus === status) {
       return res.status(400).json({
         success: false,
@@ -573,7 +892,6 @@ const updateTaskStatus = async (req, res) => {
       });
     }
 
-    // Allowed workflow transitions
     const allowedTransitions = {
       todo: ["in_progress"],
       in_progress: ["review"],
@@ -592,7 +910,6 @@ const updateTaskStatus = async (req, res) => {
       });
     }
 
-    // Save status history
     task.statusHistory.push({
       from: currentStatus,
       to: status,
@@ -600,13 +917,10 @@ const updateTaskStatus = async (req, res) => {
       changedAt: new Date(),
     });
 
-    // Update current status
     task.status = status;
 
     await task.save();
 
-    // Find the Project Manager responsible
-    // for this project.
     const project = await Project.findById(
       task.project
     ).select("assignedManager");
@@ -614,7 +928,6 @@ const updateTaskStatus = async (req, res) => {
     const projectManagerId =
       project?.assignedManager;
 
-    // Notify the Project Manager
     if (projectManagerId) {
       await createNotification({
         user: projectManagerId,

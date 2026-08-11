@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Project = require("../models/Project");
 const User = require("../models/User");
 const Task = require("../models/Task");
@@ -24,16 +25,89 @@ const createProject = async (req, res) => {
       teamMembers,
     } = req.body;
 
-    if (!name) {
+    // Validate project name
+    if (
+      typeof name !== "string" ||
+      name.trim().length < 2
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Project name is required",
+        message: "Project name must be at least 2 characters",
+      });
+    }
+
+    // Validate dates
+    if (
+      startDate &&
+      Number.isNaN(new Date(startDate).getTime())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid start date",
+      });
+    }
+
+    if (
+      endDate &&
+      Number.isNaN(new Date(endDate).getTime())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid end date",
+      });
+    }
+
+    if (
+      startDate &&
+      endDate &&
+      new Date(endDate) < new Date(startDate)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "End date cannot be before start date",
+      });
+    }
+
+    // Validate teamMembers
+    if (
+      teamMembers !== undefined &&
+      !Array.isArray(teamMembers)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "teamMembers must be an array",
+      });
+    }
+
+    if (
+      Array.isArray(teamMembers) &&
+      teamMembers.some(
+        (memberId) =>
+          !mongoose.Types.ObjectId.isValid(memberId)
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more team member IDs are invalid",
       });
     }
 
     // Validate assigned Project Manager
     if (assignedManager) {
-      const manager = await User.findById(assignedManager);
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          assignedManager
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid project manager ID",
+        });
+      }
+
+      const manager = await User.findById(
+        assignedManager
+      );
 
       if (!manager) {
         return res.status(404).json({
@@ -62,8 +136,41 @@ const createProject = async (req, res) => {
       }
     }
 
+    // Validate that all team members actually exist
+    if (
+      Array.isArray(teamMembers) &&
+      teamMembers.length > 0
+    ) {
+      const teamMemberUsers = await User.find({
+        _id: { $in: teamMembers },
+      }).select("_id role");
+
+      if (
+        teamMemberUsers.length !==
+        new Set(teamMembers.map(String)).size
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: "One or more team members were not found",
+        });
+      }
+
+      const invalidTeamMembers =
+        teamMemberUsers.some(
+          (user) => user.role !== "team_member"
+        );
+
+      if (invalidTeamMembers) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "All selected team members must have the Team Member role",
+        });
+      }
+    }
+
     const project = await Project.create({
-      name,
+      name: name.trim(),
       description,
       priority,
       status,
@@ -101,6 +208,44 @@ const getProjects = async (req, res) => {
       limit = 10,
     } = req.query;
 
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+
+    // Validate pagination
+    if (
+      !Number.isInteger(currentPage) ||
+      currentPage < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be a positive integer",
+      });
+    }
+
+    if (
+      !Number.isInteger(perPage) ||
+      perPage < 1 ||
+      perPage > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Limit must be between 1 and 100",
+      });
+    }
+
+    // Validate assigned manager filter
+    if (
+      assignedManager &&
+      !mongoose.Types.ObjectId.isValid(
+        assignedManager
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project manager ID",
+      });
+    }
+
     let query = {};
 
     if (req.user.role === "admin") {
@@ -128,10 +273,11 @@ const getProjects = async (req, res) => {
       query.priority = priority;
     }
 
-    if (assignedManager) {
-      if (req.user.role === "admin") {
-        query.assignedManager = assignedManager;
-      }
+    if (
+      assignedManager &&
+      req.user.role === "admin"
+    ) {
+      query.assignedManager = assignedManager;
     }
 
     let sortOption = {};
@@ -157,8 +303,6 @@ const getProjects = async (req, res) => {
         sortOption = { createdAt: -1 };
     }
 
-    const currentPage = Number(page);
-    const perPage = Number(limit);
     const skip = (currentPage - 1) * perPage;
 
     const totalRecords =
@@ -200,6 +344,18 @@ const getProjects = async (req, res) => {
 // Get Single Project
 const getProjectById = async (req, res) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const project = await Project.findById(
       req.params.id
     )
@@ -274,6 +430,18 @@ const getProjectById = async (req, res) => {
 // Update Project
 const updateProject = async (req, res) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const project = await Project.findById(
       req.params.id
     );
@@ -303,6 +471,201 @@ const updateProject = async (req, res) => {
       });
     }
 
+    // Project Manager cannot change
+    // the assigned Project Manager.
+    if (
+      req.user.role === "project_manager" &&
+      req.body.assignedManager !== undefined
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Project Managers cannot change the assigned Project Manager",
+      });
+    }
+
+    // Validate project name
+    if (
+      req.body.name !== undefined &&
+      (
+        typeof req.body.name !== "string" ||
+        req.body.name.trim().length < 2
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Project name must be at least 2 characters",
+      });
+    }
+
+    // Validate dates
+    if (
+      req.body.startDate !== undefined &&
+      req.body.startDate !== null &&
+      req.body.startDate !== "" &&
+      Number.isNaN(
+        new Date(req.body.startDate).getTime()
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid start date",
+      });
+    }
+
+    if (
+      req.body.endDate !== undefined &&
+      req.body.endDate !== null &&
+      req.body.endDate !== "" &&
+      Number.isNaN(
+        new Date(req.body.endDate).getTime()
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid end date",
+      });
+    }
+
+    const finalStartDate =
+      req.body.startDate !== undefined
+        ? req.body.startDate
+        : project.startDate;
+
+    const finalEndDate =
+      req.body.endDate !== undefined
+        ? req.body.endDate
+        : project.endDate;
+
+    if (
+      finalStartDate &&
+      finalEndDate &&
+      new Date(finalEndDate) <
+        new Date(finalStartDate)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "End date cannot be before start date",
+      });
+    }
+
+    // Validate assigned Project Manager
+    if (
+      req.body.assignedManager !== undefined
+    ) {
+      if (
+        !req.body.assignedManager ||
+        !mongoose.Types.ObjectId.isValid(
+          req.body.assignedManager
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid project manager ID",
+        });
+      }
+
+      const manager = await User.findById(
+        req.body.assignedManager
+      );
+
+      if (!manager) {
+        return res.status(404).json({
+          success: false,
+          message: "Project Manager not found",
+        });
+      }
+
+      if (manager.role !== "project_manager") {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Selected user is not a Project Manager",
+        });
+      }
+
+      const alreadyAssigned =
+        await Project.findOne({
+          assignedManager: manager._id,
+          _id: { $ne: project._id },
+        });
+
+      if (alreadyAssigned) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This Project Manager is already assigned to another project",
+        });
+      }
+    }
+
+    // Validate team members
+    if (
+      req.body.teamMembers !== undefined
+    ) {
+      if (!Array.isArray(req.body.teamMembers)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "teamMembers must be an array",
+        });
+      }
+
+      if (
+        req.body.teamMembers.some(
+          (memberId) =>
+            !mongoose.Types.ObjectId.isValid(
+              memberId
+            )
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "One or more team member IDs are invalid",
+        });
+      }
+
+      const teamMemberUsers =
+        await User.find({
+          _id: {
+            $in: req.body.teamMembers,
+          },
+        }).select("_id role");
+
+      const requestedMemberIds =
+        new Set(
+          req.body.teamMembers.map(String)
+        );
+
+      if (
+        teamMemberUsers.length !==
+        requestedMemberIds.size
+      ) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "One or more team members were not found",
+        });
+      }
+
+      const hasInvalidRole =
+        teamMemberUsers.some(
+          (user) =>
+            user.role !== "team_member"
+        );
+
+      if (hasInvalidRole) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "All team members must have the Team Member role",
+        });
+      }
+    }
+
     const allowedFields = [
       "name",
       "description",
@@ -318,7 +681,10 @@ const updateProject = async (req, res) => {
 
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+        updates[field] =
+          field === "name"
+            ? req.body[field].trim()
+            : req.body[field];
       }
     }
 
@@ -352,7 +718,41 @@ const assignProjectManager = async (
   res
 ) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const { managerId } = req.body;
+
+    if (
+      !managerId ||
+      !mongoose.Types.ObjectId.isValid(
+        managerId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project manager ID",
+      });
+    }
+
+    const project =
+      await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
 
     const manager =
       await User.findById(managerId);
@@ -377,7 +777,7 @@ const assignProjectManager = async (
     const alreadyAssigned =
       await Project.findOne({
         assignedManager: manager._id,
-        _id: { $ne: req.params.id },
+        _id: { $ne: project._id },
       });
 
     if (alreadyAssigned) {
@@ -385,16 +785,6 @@ const assignProjectManager = async (
         success: false,
         message:
           "This Project Manager is already assigned to another project",
-      });
-    }
-
-    const project =
-      await Project.findById(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
       });
     }
 
@@ -423,6 +813,18 @@ const manageTeamMembers = async (
   res
 ) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const { memberIds } = req.body;
 
     const project =
@@ -464,7 +866,23 @@ const manageTeamMembers = async (
       });
     }
 
-    for (const memberId of memberIds) {
+    const uniqueMemberIds = [
+      ...new Set(memberIds.map(String)),
+    ];
+
+    for (const memberId of uniqueMemberIds) {
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          memberId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            `Invalid team member ID: ${memberId}`,
+        });
+      }
+
       const user =
         await User.findById(memberId);
 
@@ -486,8 +904,9 @@ const manageTeamMembers = async (
       }
 
       if (
-        !project.teamMembers.includes(
-          memberId
+        !project.teamMembers.some(
+          (id) =>
+            id.toString() === memberId
         )
       ) {
         project.teamMembers.push(
@@ -518,7 +937,31 @@ const removeTeamMember = async (
   res
 ) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const { memberId } = req.body;
+
+    if (
+      !memberId ||
+      !mongoose.Types.ObjectId.isValid(
+        memberId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid team member ID",
+      });
+    }
 
     const project =
       await Project.findById(req.params.id);
@@ -590,6 +1033,18 @@ const deleteProject = async (
   res
 ) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const project =
       await Project.findById(req.params.id);
 
@@ -682,6 +1137,18 @@ const getProjectWorkspace = async (
   res
 ) => {
   try {
+    // Validate project ID
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        req.params.id
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID",
+      });
+    }
+
     const project =
       await Project.findById(req.params.id)
         .populate(
@@ -759,14 +1226,12 @@ const getProjectWorkspace = async (
           task.status === "in_progress"
       ).length;
 
-    // Review Tasks
     const reviewTasks =
       tasks.filter(
         (task) =>
           task.status === "review"
       ).length;
 
-    // Pending Tasks
     const pendingTasks =
       tasks.filter(
         (task) =>

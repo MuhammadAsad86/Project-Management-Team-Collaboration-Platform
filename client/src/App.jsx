@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -20,54 +20,138 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleRoute from "./routes/RoleRoute";
 
+const HomeRedirect = () => {
+  const user = JSON.parse(
+    localStorage.getItem("user")
+  );
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === "admin") {
+    return <Dashboard />;
+  }
+
+  if (user.role === "project_manager") {
+    return (
+      <Navigate
+        to="/pm-dashboard"
+        replace
+      />
+    );
+  }
+
+  if (user.role === "team_member") {
+    return (
+      <Navigate
+        to="/team-member-dashboard"
+        replace
+      />
+    );
+  }
+
+  return (
+    <Navigate
+      to="/unauthorized"
+      replace
+    />
+  );
+};
+
 function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
+
+      <Route
+        path="/unauthorized"
+        element={<Unauthorized />}
+      />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
 
           {/* =========================
+              HOME / ROLE DASHBOARD
+          ========================== */}
+
+          <Route
+            path="/"
+            element={<HomeRedirect />}
+          />
+
+          {/* =========================
               ADMIN ONLY
           ========================== */}
-          <Route element={<RoleRoute allowedRoles={["admin"]} />}>
-            <Route path="/" element={<Dashboard />} />
 
-            <Route path="/users" element={<Users />} />
+          <Route
+            element={
+              <RoleRoute
+                allowedRoles={["admin"]}
+              />
+            }
+          >
+            <Route
+              path="/users"
+              element={<Users />}
+            />
 
-            <Route path="/teams" element={<Teams />} />
+            <Route
+              path="/teams"
+              element={<Teams />}
+            />
           </Route>
 
           {/* =========================
               PROJECT MANAGER ONLY
           ========================== */}
+
           <Route
             element={
-              <RoleRoute allowedRoles={["project_manager"]} />
+              <RoleRoute
+                allowedRoles={[
+                  "project_manager",
+                ]}
+              />
             }
           >
             <Route
               path="/pm-dashboard"
-              element={<ProjectManagerDashboard />}
+              element={
+                <ProjectManagerDashboard />
+              }
             />
           </Route>
 
           {/* =========================
               TEAM MEMBER ONLY
           ========================== */}
+
           <Route
             element={
-              <RoleRoute allowedRoles={["team_member"]} />
+              <RoleRoute
+                allowedRoles={[
+                  "team_member",
+                ]}
+              />
             }
           >
             <Route
               path="/team-member-dashboard"
-              element={<TeamMemberDashboard />}
+              element={
+                <TeamMemberDashboard />
+              }
             />
           </Route>
 
@@ -93,7 +177,9 @@ function App() {
 
             <Route
               path="/projects/:id"
-              element={<ProjectDetails />}
+              element={
+                <ProjectDetails />
+              }
             />
           </Route>
 
@@ -164,7 +250,10 @@ function App() {
       </Route>
 
       {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+      <Route
+        path="*"
+        element={<NotFound />}
+      />
     </Routes>
   );
 }

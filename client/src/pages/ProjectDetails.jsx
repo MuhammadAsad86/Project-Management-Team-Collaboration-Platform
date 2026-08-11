@@ -66,16 +66,6 @@ const ProjectDetails = () => {
       try {
         const data = await getProjectById(id);
 
-        console.log(
-          "fetchProject response:",
-          data
-        );
-
-        console.log(
-          "fetchProject tasks:",
-          data.tasks
-        );
-
         setProject(data.project);
         setTasks(data.tasks || []);
       } catch (error) {
@@ -325,8 +315,6 @@ const ProjectDetails = () => {
       : Math.round(
         (completedTasks / totalTasks) * 100
       );
-
-  console.log("Tasks State:", tasks);
 
   return (
     <div className="space-y-6">
@@ -793,10 +781,14 @@ const ProjectDetails = () => {
                                   comment.message
                                 }
                               </p>
-                              {comment.user?._id === user?.id && (
+
+                              {comment.user?._id ===
+                                user?.id && (
                                 <button
                                   onClick={() =>
-                                    handleDeleteComment(comment._id)
+                                    handleDeleteComment(
+                                      comment._id
+                                    )
                                   }
                                   className="mt-3 rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
                                 >

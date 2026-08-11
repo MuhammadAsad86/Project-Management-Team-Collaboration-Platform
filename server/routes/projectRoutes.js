@@ -59,7 +59,7 @@ router.get("/:id", protect, getProjectById);
 router.put(
   "/:id",
   protect,
-  authorize("admin", "project_manager"),
+authorize("admin", "project_manager"),
   updateProject
 );
 

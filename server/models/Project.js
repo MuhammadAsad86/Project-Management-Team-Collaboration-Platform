@@ -6,11 +6,13 @@ const projectSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
     },
 
     description: {
       type: String,
       default: "",
+      trim: true,
     },
 
     // User who created the project
@@ -28,12 +30,26 @@ const projectSchema = new mongoose.Schema(
     },
 
     // Team Members
-    teamMembers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+    teamMembers: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+      validate: {
+        validator: function (members) {
+          const ids = members.map((id) =>
+            id.toString()
+          );
+
+          return ids.length === new Set(ids).size;
+        },
+        message:
+          "A team member cannot be added more than once",
       },
-    ],
+    },
 
     priority: {
       type: String,
@@ -53,6 +69,17 @@ const projectSchema = new mongoose.Schema(
 
     endDate: {
       type: Date,
+      validate: {
+        validator: function (value) {
+          if (!value || !this.startDate) {
+            return true;
+          }
+
+          return value >= this.startDate;
+        },
+        message:
+          "End date cannot be before start date",
+      },
     },
   },
   {
@@ -60,4 +87,5 @@ const projectSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Project", projectSchema);
+module.exports =
+  mongoose.model("Project", projectSchema);

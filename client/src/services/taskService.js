@@ -3,19 +3,37 @@ import axiosInstance from "../utils/axiosInstance";
 // Get All Tasks
 // Admin + Project Manager
 export const getTasks = async (params = {}) => {
-  const response = await axiosInstance.get("/tasks", {
-    params,
-  });
+  const response = await axiosInstance.get(
+    "/tasks",
+    {
+      params,
+    }
+  );
 
   return response.data;
 };
 
 // Get Assigned Tasks
 // Team Member only
-export const getAssignedTasks = async (params = {}) => {
-  const response = await axiosInstance.get("/tasks/assigned", {
-    params,
-  });
+export const getAssignedTasks = async (
+  params = {}
+) => {
+  const response = await axiosInstance.get(
+    "/tasks/assigned",
+    {
+      params,
+    }
+  );
+
+  return response.data;
+};
+
+// Get Team Member Dashboard Statistics
+// Team Member only
+export const getMyTaskStats = async () => {
+  const response = await axiosInstance.get(
+    "/tasks/my-stats"
+  );
 
   return response.data;
 };
@@ -42,7 +60,10 @@ export const createTask = async (taskData) => {
 
 // Update Task
 // Admin + assigned Project Manager
-export const updateTask = async (id, taskData) => {
+export const updateTask = async (
+  id,
+  taskData
+) => {
   const response = await axiosInstance.put(
     `/tasks/${id}`,
     taskData
@@ -63,7 +84,10 @@ export const deleteTask = async (id) => {
 
 // Update Task Status
 // Assigned Team Member
-export const updateTaskStatus = async (id, status) => {
+export const updateTaskStatus = async (
+  id,
+  status
+) => {
   const response = await axiosInstance.patch(
     `/tasks/${id}/status`,
     {
@@ -75,7 +99,9 @@ export const updateTaskStatus = async (id, status) => {
 };
 
 // Get Task Comments
-export const getTaskComments = async (taskId) => {
+export const getTaskComments = async (
+  taskId
+) => {
   const response = await axiosInstance.get(
     `/tasks/${taskId}/comments`
   );
@@ -99,7 +125,9 @@ export const addTaskComment = async (
 };
 
 // Delete Own Task Comment
-export const deleteTaskComment = async (commentId) => {
+export const deleteTaskComment = async (
+  commentId
+) => {
   const response = await axiosInstance.delete(
     `/tasks/comments/${commentId}`
   );

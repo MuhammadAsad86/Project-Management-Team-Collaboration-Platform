@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   getNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from "../../services/notificationService";
 
 const Navbar = () => {
@@ -12,8 +13,11 @@ const Navbar = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] =
+    useState(false);
   const [loadingNotifications, setLoadingNotifications] =
+    useState(false);
+  const [markingAllRead, setMarkingAllRead] =
     useState(false);
 
   const notificationRef = useRef(null);
@@ -69,7 +73,6 @@ const Navbar = () => {
     notification
   ) => {
     try {
-      // Mark notification as read
       if (!notification.read) {
         await markNotificationAsRead(
           notification._id
@@ -88,10 +91,8 @@ const Navbar = () => {
         );
       }
 
-      // Close notification dropdown
       setShowNotifications(false);
 
-      // Navigate to related project
       if (notification.relatedProject?._id) {
         navigate(
           `/projects/${notification.relatedProject._id}`
@@ -102,6 +103,34 @@ const Navbar = () => {
         "Failed to handle notification click:",
         error
       );
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0 || markingAllRead) {
+      return;
+    }
+
+    try {
+      setMarkingAllRead(true);
+
+      await markAllNotificationsAsRead();
+
+      setNotifications((current) =>
+        current.map((notification) => ({
+          ...notification,
+          read: true,
+        }))
+      );
+
+      setUnreadCount(0);
+    } catch (error) {
+      console.error(
+        "Failed to mark all notifications as read:",
+        error
+      );
+    } finally {
+      setMarkingAllRead(false);
     }
   };
 
@@ -151,9 +180,16 @@ const Navbar = () => {
                 </h3>
 
                 {unreadCount > 0 && (
-                  <span className="text-sm text-gray-500">
-                    {unreadCount} unread
-                  </span>
+                  <button
+                    type="button"
+                    onClick={handleMarkAllAsRead}
+                    disabled={markingAllRead}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {markingAllRead
+                      ? "Marking..."
+                      : "Mark all as read"}
+                  </button>
                 )}
               </div>
 

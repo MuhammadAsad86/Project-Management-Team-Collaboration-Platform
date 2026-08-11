@@ -19,3 +19,12 @@ export const markNotificationAsRead = async (
 
   return response.data;
 };
+
+// Mark all notifications as read
+export const markAllNotificationsAsRead = async () => {
+  const response = await axiosInstance.patch(
+    "/notifications/read-all"
+  );
+
+  return response.data;
+};
