@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
@@ -10,22 +12,42 @@ const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
-const protect = require("./middleware/authMiddleware");
-const authorize = require("./middleware/roleMiddleware");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const checkUpcomingDeadlines = require("./utils/deadlineNotification");
 
 const app = express();
 
+// Authentication rate limiter
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message:
+      "Too many authentication requests. Please try again later.",
+  },
+});
+
 // Middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin:
+      process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
+
+app.use(helmet());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // API Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/tasks", commentRoutes);
@@ -40,19 +62,6 @@ app.get("/", (req, res) => {
     message: "Project Management API is running...",
   });
 });
-
-// Temporary RBAC Test Route
-app.get(
-  "/api/admin/test",
-  protect,
-  authorize("admin"),
-  (req, res) => {
-    res.json({
-      success: true,
-      message: "Admin route working.",
-    });
-  }
-);
 
 // Deadline notification checker
 // Run once when server starts.

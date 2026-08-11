@@ -11,6 +11,7 @@ import {
 import {
   getTaskComments,
   addTaskComment,
+  deleteTaskComment,
 } from "../services/taskService";
 
 import { getUsers } from "../services/userService";
@@ -80,7 +81,7 @@ const ProjectDetails = () => {
       } catch (error) {
         toast.error(
           error.response?.data?.message ||
-            "Failed to load project"
+          "Failed to load project"
         );
       } finally {
         setLoading(false);
@@ -100,7 +101,7 @@ const ProjectDetails = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to load workspace"
+        "Failed to load workspace"
       );
     }
   };
@@ -127,7 +128,7 @@ const ProjectDetails = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to load users"
+        "Failed to load users"
       );
     }
   };
@@ -157,7 +158,7 @@ const ProjectDetails = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to remove member"
+        "Failed to remove member"
       );
     } finally {
       setRemovingMember(null);
@@ -178,7 +179,7 @@ const ProjectDetails = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to load comments"
+        "Failed to load comments"
       );
 
       setComments([]);
@@ -220,7 +221,7 @@ const ProjectDetails = () => {
 
       toast.success(
         data.message ||
-          "Comment added successfully"
+        "Comment added successfully"
       );
 
       setCommentMessage("");
@@ -231,10 +232,49 @@ const ProjectDetails = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Failed to add comment"
+        "Failed to add comment"
       );
     } finally {
       setCommentSubmitting(false);
+    }
+  };
+
+  // Delete Own Comment
+  const handleDeleteComment = async (
+    commentId
+  ) => {
+    if (!commentId) {
+      toast.error("Invalid comment");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this comment?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const data =
+        await deleteTaskComment(commentId);
+
+      toast.success(
+        data.message ||
+        "Comment deleted successfully"
+      );
+
+      if (discussionTask?._id) {
+        await fetchTaskComments(
+          discussionTask._id
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to delete comment"
+      );
     }
   };
 
@@ -283,8 +323,8 @@ const ProjectDetails = () => {
     totalTasks === 0
       ? 0
       : Math.round(
-          (completedTasks / totalTasks) * 100
-        );
+        (completedTasks / totalTasks) * 100
+      );
 
   console.log("Tasks State:", tasks);
 
@@ -343,11 +383,10 @@ const ProjectDetails = () => {
             onClick={() =>
               setActiveTab("overview")
             }
-            className={`rounded px-4 py-2 ${
-              activeTab === "overview"
+            className={`rounded px-4 py-2 ${activeTab === "overview"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             Overview
           </button>
@@ -356,11 +395,10 @@ const ProjectDetails = () => {
             onClick={() =>
               setActiveTab("tasks")
             }
-            className={`rounded px-4 py-2 ${
-              activeTab === "tasks"
+            className={`rounded px-4 py-2 ${activeTab === "tasks"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             Tasks
           </button>
@@ -369,11 +407,10 @@ const ProjectDetails = () => {
             onClick={() =>
               setActiveTab("members")
             }
-            className={`rounded px-4 py-2 ${
-              activeTab === "members"
+            className={`rounded px-4 py-2 ${activeTab === "members"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             Members
           </button>
@@ -382,11 +419,10 @@ const ProjectDetails = () => {
             onClick={() =>
               setActiveTab("discussion")
             }
-            className={`rounded px-4 py-2 ${
-              activeTab === "discussion"
+            className={`rounded px-4 py-2 ${activeTab === "discussion"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             Discussion
           </button>
@@ -395,11 +431,10 @@ const ProjectDetails = () => {
             onClick={() =>
               setActiveTab("progress")
             }
-            className={`rounded px-4 py-2 ${
-              activeTab === "progress"
+            className={`rounded px-4 py-2 ${activeTab === "progress"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
-            }`}
+              }`}
           >
             Progress
           </button>
@@ -526,7 +561,7 @@ const ProjectDetails = () => {
           </h2>
 
           {project.teamMembers?.length ===
-          0 ? (
+            0 ? (
             <div>
               <p className="text-gray-500">
                 No team members assigned.
@@ -573,7 +608,7 @@ const ProjectDetails = () => {
                       className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {removingMember ===
-                      member._id
+                        member._id
                         ? "Removing..."
                         : "Remove"}
                     </button>
@@ -636,11 +671,11 @@ const ProjectDetails = () => {
             const discussionTasks =
               user?.role === "team_member"
                 ? tasks.filter(
-                    (task) =>
-                      task.assignedTo?._id ===
-                        user.id ||
-                      task.assignedTo === user.id
-                  )
+                  (task) =>
+                    task.assignedTo?._id ===
+                    user.id ||
+                    task.assignedTo === user.id
+                )
                 : tasks;
 
             return discussionTasks.length ===
@@ -668,12 +703,11 @@ const ProjectDetails = () => {
                             task._id
                           );
                         }}
-                        className={`w-full rounded-lg border p-4 text-left transition ${
-                          discussionTask?._id ===
-                          task._id
+                        className={`w-full rounded-lg border p-4 text-left transition ${discussionTask?._id ===
+                            task._id
                             ? "border-blue-500 bg-blue-50"
                             : "hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
@@ -759,6 +793,16 @@ const ProjectDetails = () => {
                                   comment.message
                                 }
                               </p>
+                              {comment.user?._id === user?.id && (
+                                <button
+                                  onClick={() =>
+                                    handleDeleteComment(comment._id)
+                                  }
+                                  className="mt-3 rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           )
                         )}
@@ -927,7 +971,7 @@ const ProjectDetails = () => {
               ) : (
                 <>
                   {filteredUsers.length ===
-                  0 ? (
+                    0 ? (
                     <p className="text-center text-gray-500">
                       No matching members found.
                     </p>
@@ -954,15 +998,14 @@ const ProjectDetails = () => {
                                 user
                               )
                             }
-                            className={`rounded px-3 py-1 text-white ${
-                              selectedMember?._id ===
-                              user._id
+                            className={`rounded px-3 py-1 text-white ${selectedMember?._id ===
+                                user._id
                                 ? "bg-green-600"
                                 : "bg-blue-600"
-                            }`}
+                              }`}
                           >
                             {selectedMember?._id ===
-                            user._id
+                              user._id
                               ? "Selected"
                               : "Select"}
                           </button>
@@ -1036,7 +1079,7 @@ const ProjectDetails = () => {
                     toast.error(
                       error.response?.data
                         ?.message ||
-                        "Failed to add member"
+                      "Failed to add member"
                     );
                   } finally {
                     setAddingMember(false);

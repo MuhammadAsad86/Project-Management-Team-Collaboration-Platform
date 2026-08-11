@@ -42,10 +42,7 @@ export const createTask = async (taskData) => {
 
 // Update Task
 // Admin + assigned Project Manager
-export const updateTask = async (
-  id,
-  taskData
-) => {
+export const updateTask = async (id, taskData) => {
   const response = await axiosInstance.put(
     `/tasks/${id}`,
     taskData
@@ -66,10 +63,7 @@ export const deleteTask = async (id) => {
 
 // Update Task Status
 // Assigned Team Member
-export const updateTaskStatus = async (
-  id,
-  status
-) => {
+export const updateTaskStatus = async (id, status) => {
   const response = await axiosInstance.patch(
     `/tasks/${id}/status`,
     {
@@ -99,6 +93,15 @@ export const addTaskComment = async (
     {
       message,
     }
+  );
+
+  return response.data;
+};
+
+// Delete Own Task Comment
+export const deleteTaskComment = async (commentId) => {
+  const response = await axiosInstance.delete(
+    `/tasks/comments/${commentId}`
   );
 
   return response.data;

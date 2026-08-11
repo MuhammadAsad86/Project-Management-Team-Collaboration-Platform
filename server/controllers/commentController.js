@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Comment = require("../models/Comment");
 const Task = require("../models/Task");
 const createNotification = require("../utils/notificationHelper");
+
 const canAccessTask = (task, user) => {
   // Admin can access all task discussions.
   if (user.role === "admin") {
@@ -200,7 +201,57 @@ const getTaskComments = async (req, res) => {
   }
 };
 
+// Delete Own Comment
+const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+
+    // Validate Comment ID
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid comment ID",
+      });
+    }
+
+    // Find comment
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    // Only the comment author can delete the comment.
+    if (
+      comment.user.toString() !==
+      req.user.id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can only delete your own comments",
+      });
+    }
+
+    await Comment.findByIdAndDelete(commentId);
+
+    res.status(200).json({
+      success: true,
+      message: "Comment deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createComment,
   getTaskComments,
+  deleteComment,
 };

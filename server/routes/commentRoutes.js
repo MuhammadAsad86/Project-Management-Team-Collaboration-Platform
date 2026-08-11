@@ -7,6 +7,7 @@ const protect = require("../middleware/authMiddleware");
 const {
   createComment,
   getTaskComments,
+  deleteComment,
 } = require("../controllers/commentController");
 
 // Create Comment
@@ -21,6 +22,13 @@ router.get(
   "/:taskId/comments",
   protect,
   getTaskComments
+);
+
+// Delete Own Comment
+router.delete(
+  "/comments/:commentId",
+  protect,
+  deleteComment
 );
 
 module.exports = router;

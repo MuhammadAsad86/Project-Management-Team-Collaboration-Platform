@@ -31,8 +31,7 @@ const createProject = async (req, res) => {
       });
     }
 
-    // If an assignedManager is provided at creation time, validate it
-    // the same way assignProjectManager() does.
+    // Validate assigned Project Manager
     if (assignedManager) {
       const manager = await User.findById(assignedManager);
 
@@ -102,11 +101,6 @@ const getProjects = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    // Role-based base query:
-    // Admin: every project
-    // Project Manager: assigned projects
-    // Team Member: projects where user is a team member
-    // Otherwise: projects created by user
     let query = {};
 
     if (req.user.role === "admin") {
@@ -135,10 +129,11 @@ const getProjects = async (req, res) => {
     }
 
     if (assignedManager) {
-  if (req.user.role === "admin") {
-    query.assignedManager = assignedManager;
-  }
-}
+      if (req.user.role === "admin") {
+        query.assignedManager = assignedManager;
+      }
+    }
+
     let sortOption = {};
 
     switch (sort) {
@@ -222,7 +217,6 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    // Authorization
     const isAdmin =
       req.user.role === "admin";
 
@@ -255,7 +249,6 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    // Get project tasks
     const tasks = await Task.find({
       project: project._id,
     })
@@ -806,31 +799,40 @@ const getProjectManagerStats = async (
   res
 ) => {
   try {
+    // Get projects assigned to the logged-in Project Manager
+    const assignedProjects = await Project.find({
+      assignedManager: req.user.id,
+    }).select("_id status");
+
+    const projectIds = assignedProjects.map(
+      (project) => project._id
+    );
+
     const totalProjects =
-      await Project.countDocuments({
-        assignedManager: req.user.id,
-      });
+      assignedProjects.length;
 
     const activeProjects =
-      await Project.countDocuments({
-        assignedManager: req.user.id,
-        status: "active",
-      });
+      assignedProjects.filter(
+        (project) =>
+          project.status === "active"
+      ).length;
 
     const completedProjects =
-      await Project.countDocuments({
-        assignedManager: req.user.id,
-        status: "completed",
-      });
+      assignedProjects.filter(
+        (project) =>
+          project.status === "completed"
+      ).length;
 
+    // Count all tasks belonging to the PM's assigned projects
     const totalTasks =
       await Task.countDocuments({
-        assignedTo: req.user.id,
+        project: { $in: projectIds },
       });
 
+    // Count completed tasks belonging to the PM's assigned projects
     const completedTasks =
       await Task.countDocuments({
-        assignedTo: req.user.id,
+        project: { $in: projectIds },
         status: "completed",
       });
 
