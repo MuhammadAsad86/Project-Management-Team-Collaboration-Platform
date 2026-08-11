@@ -1324,7 +1324,7 @@ module.exports = {
   getProjects,
   getProjectById,
   updateProject,
-  assignProjectManager,
+assignProjectManager,
   manageTeamMembers,
   removeTeamMember,
   deleteProject,

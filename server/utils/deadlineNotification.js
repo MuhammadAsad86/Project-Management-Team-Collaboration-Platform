@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const Notification = require("../models/Notification");
 const createNotification = require("./notificationHelper");
 
 const checkUpcomingDeadlines = async () => {
@@ -25,9 +26,7 @@ const checkUpcomingDeadlines = async () => {
         continue;
       }
 
-      // Prevent duplicate deadline notifications.
-      const Notification = require("../models/Notification");
-
+      // Prevent duplicate deadline notifications
       const alreadyNotified =
         await Notification.findOne({
           user: task.assignedTo,
