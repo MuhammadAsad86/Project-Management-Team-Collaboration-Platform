@@ -93,14 +93,32 @@ app.get("/", (req, res) => {
   });
 });
 
-// Deadline notification checker
-// Run once when server starts
-checkUpcomingDeadlines();
+// Deadline notification checker.
+// IMPORTANT: this must NOT run at module-load time (it used to, which fired
+// a Task.find() query before connectDB() had a chance to run for cold
+// starts on Vercel — that's what produced the
+// "Deadline notification check error: tasks.find() buffering timed out"
+// log). `setInterval` also doesn't work reliably in a serverless
+// environment, since the process is frozen/killed between invocations.
+//
+// Instead, this route is meant to be triggered by Vercel Cron (see
+// vercel.json's "crons" entry) or any external scheduler. By the time this
+// route is hit, the DB-connect middleware in api/index.js has already run,
+// so the connection is guaranteed to be ready.
+app.get("/api/cron/check-deadlines", async (req, res) => {
+  const cronSecret = process.env.CRON_SECRET;
 
-// Run every hour
-setInterval(() => {
-  checkUpcomingDeadlines();
-}, 60 * 60 * 1000);
+  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  try {
+    await checkUpcomingDeadlines();
+    res.json({ success: true, message: "Deadline check completed" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // Global Error Handler
 app.use(errorHandler);
