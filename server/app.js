@@ -18,6 +18,9 @@ const checkUpcomingDeadlines = require("./utils/deadlineNotification");
 
 const app = express();
 
+// Required for Vercel proxy
+app.set("trust proxy", 1);
+
 // Authentication rate limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
