@@ -4,6 +4,8 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
+const connectDB = require("./config/database");
+
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
@@ -20,6 +22,21 @@ const app = express();
 
 // Required for Vercel proxy and express-rate-limit
 app.set("trust proxy", 1);
+
+// Connect to MongoDB before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Database connection error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+    });
+  }
+});
 
 // Authentication rate limiter
 const authLimiter = rateLimit({
@@ -40,12 +57,6 @@ const allowedOrigins = [
 ];
 
 // CORS configuration
-// Vercel truncates/aliases long project names for their auto-generated
-// domains (e.g. "collaboration-platform-4jpsxe4yq.vercel.app" vs the
-// production alias "collaborati-nine.vercel.app" / "collaborati-lac.vercel.app"),
-// so a regex anchored to the full untruncated name misses real production
-// and preview domains. Match on the stable "project-management-team-collaborat"
-// prefix instead, whatever suffix Vercel appends.
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -99,34 +110,33 @@ app.get("/", (req, res) => {
   });
 });
 
-// Deadline notification checker.
-// IMPORTANT: this must NOT run at module-load time (it used to, which fired
-// a Task.find() query before connectDB() had a chance to run for cold
-// starts on Vercel — that's what produced the
-// "Deadline notification check error: tasks.find() buffering timed out"
-// log). `setInterval` also doesn't work reliably in a serverless
-// environment, since the process is frozen/killed between invocations.
-//
-// Instead, this route is meant to be triggered by Vercel Cron (see
-// vercel.json's "crons" entry) or any external scheduler. By the time this
-// route is hit, the DB-connect middleware in api/index.js has already run,
-// so the connection is guaranteed to be ready.
+// Deadline notification checker
 app.get("/api/cron/check-deadlines", async (req, res) => {
   const cronSecret = process.env.CRON_SECRET;
 
   if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
   }
 
   try {
     await checkUpcomingDeadlines();
-    res.json({ success: true, message: "Deadline check completed" });
+
+    return res.json({
+      success: true,
+      message: "Deadline check completed",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 });
 
 // Global Error Handler
 app.use(errorHandler);
 
-module.exports = app;
+module.exports = app;s
