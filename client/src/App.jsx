@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
+import "./App.css";
+
 import MainLayout from "./layouts/MainLayout";
 
 import Login from "./pages/Login";
@@ -21,9 +23,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleRoute from "./routes/RoleRoute";
 
 const HomeRedirect = () => {
-  const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  const user = JSON.parse(localStorage.getItem("user"));
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -34,89 +34,44 @@ const HomeRedirect = () => {
   }
 
   if (user.role === "project_manager") {
-    return (
-      <Navigate
-        to="/pm-dashboard"
-        replace
-      />
-    );
+    return <Navigate to="/pm-dashboard" replace />;
   }
 
   if (user.role === "team_member") {
-    return (
-      <Navigate
-        to="/team-member-dashboard"
-        replace
-      />
-    );
+    return <Navigate to="/team-member-dashboard" replace />;
   }
 
-  return (
-    <Navigate
-      to="/unauthorized"
-      replace
-    />
-  );
+  return <Navigate to="/unauthorized" replace />;
 };
 
 function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route
-        path="/login"
-        element={<Login />}
-      />
+      <Route path="/login" element={<Login />} />
 
-      <Route
-        path="/register"
-        element={<Register />}
-      />
+      <Route path="/register" element={<Register />} />
 
-      <Route
-        path="/unauthorized"
-        element={<Unauthorized />}
-      />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected Routes */}
+      {/* Protected Application */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
+          {/* Home / Role Dashboard */}
+          <Route path="/" element={<HomeRedirect />} />
 
-          {/* =========================
-              HOME / ROLE DASHBOARD
-          ========================== */}
-
-          <Route
-            path="/"
-            element={<HomeRedirect />}
-          />
-
-          {/* =========================
-              ADMIN ONLY
-          ========================== */}
-
+          {/* Admin Only */}
           <Route
             element={
-              <RoleRoute
-                allowedRoles={["admin"]}
-              />
+              <RoleRoute allowedRoles={["admin"]} />
             }
           >
-            <Route
-              path="/users"
-              element={<Users />}
-            />
+            <Route path="/users" element={<Users />} />
 
-            <Route
-              path="/teams"
-              element={<Teams />}
-            />
+            <Route path="/teams" element={<Teams />} />
           </Route>
 
-          {/* =========================
-              PROJECT MANAGER ONLY
-          ========================== */}
-
+          {/* Project Manager Only */}
           <Route
             element={
               <RoleRoute
@@ -128,16 +83,11 @@ function App() {
           >
             <Route
               path="/pm-dashboard"
-              element={
-                <ProjectManagerDashboard />
-              }
+              element={<ProjectManagerDashboard />}
             />
           </Route>
 
-          {/* =========================
-              TEAM MEMBER ONLY
-          ========================== */}
-
+          {/* Team Member Only */}
           <Route
             element={
               <RoleRoute
@@ -149,16 +99,11 @@ function App() {
           >
             <Route
               path="/team-member-dashboard"
-              element={
-                <TeamMemberDashboard />
-              }
+              element={<TeamMemberDashboard />}
             />
           </Route>
 
-          {/* =========================
-              SHARED PROJECT ROUTES
-          ========================== */}
-
+          {/* Shared Project Routes */}
           <Route
             element={
               <RoleRoute
@@ -177,16 +122,11 @@ function App() {
 
             <Route
               path="/projects/:id"
-              element={
-                <ProjectDetails />
-              }
+              element={<ProjectDetails />}
             />
           </Route>
 
-          {/* =========================
-              SHARED TASK ROUTE
-          ========================== */}
-
+          {/* Shared Task Route */}
           <Route
             element={
               <RoleRoute
@@ -198,16 +138,10 @@ function App() {
               />
             }
           >
-            <Route
-              path="/tasks"
-              element={<Tasks />}
-            />
+            <Route path="/tasks" element={<Tasks />} />
           </Route>
 
-          {/* =========================
-              SHARED CALENDAR
-          ========================== */}
-
+          {/* Shared Calendar */}
           <Route
             element={
               <RoleRoute
@@ -225,10 +159,7 @@ function App() {
             />
           </Route>
 
-          {/* =========================
-              SHARED PROFILE
-          ========================== */}
-
+          {/* Shared Profile */}
           <Route
             element={
               <RoleRoute
@@ -245,15 +176,11 @@ function App() {
               element={<Profile />}
             />
           </Route>
-
         </Route>
       </Route>
 
       {/* 404 */}
-      <Route
-        path="*"
-        element={<NotFound />}
-      />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

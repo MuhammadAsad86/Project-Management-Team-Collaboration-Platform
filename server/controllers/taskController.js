@@ -153,7 +153,7 @@ const createTask = async (req, res) => {
       });
     }
 
-    const task = await Task.create({
+    let task = await Task.create({
       title: title.trim(),
       description,
       project,
@@ -163,6 +163,12 @@ const createTask = async (req, res) => {
       status: "todo",
       dueDate,
     });
+
+    task = await Task.findById(task._id)
+      .populate("project", "name assignedManager")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email")
+      .populate("statusHistory.changedBy", "name email role");
 
     await createNotification({
       user: assignedTo,
@@ -369,6 +375,10 @@ const getTasks = async (req, res) => {
         "createdBy",
         "name email"
       )
+      .populate(
+        "statusHistory.changedBy",
+        "name email role"
+      )
       .sort(sortOption)
       .skip(skip)
       .limit(perPage);
@@ -422,6 +432,10 @@ const getTaskById = async (req, res) => {
       .populate(
         "createdBy",
         "name email"
+      )
+      .populate(
+        "statusHistory.changedBy",
+        "name email role"
       );
 
     if (!task) {
@@ -480,7 +494,7 @@ const updateTask = async (req, res) => {
       });
     }
 
-    const task = await Task.findById(
+    let task = await Task.findById(
       req.params.id
     ).populate(
       "project",
@@ -630,6 +644,12 @@ const updateTask = async (req, res) => {
     }
 
     await task.save();
+
+    task = await Task.findById(task._id)
+      .populate("project", "name assignedManager")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email")
+      .populate("statusHistory.changedBy", "name email role");
 
     res.status(200).json({
       success: true,
@@ -821,6 +841,10 @@ const getAssignedTasks = async (req, res) => {
         "createdBy",
         "name email"
       )
+      .populate(
+        "statusHistory.changedBy",
+        "name email role"
+      )
       .sort(sortOption)
       .skip(skip)
       .limit(perPage);
@@ -869,7 +893,7 @@ const updateTaskStatus = async (req, res) => {
       });
     }
 
-    const task = await Task.findOne({
+    let task = await Task.findOne({
       _id: req.params.id,
       assignedTo: req.user.id,
     });
@@ -920,6 +944,12 @@ const updateTaskStatus = async (req, res) => {
     task.status = status;
 
     await task.save();
+
+    task = await Task.findById(task._id)
+      .populate("project", "name assignedManager")
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email")
+      .populate("statusHistory.changedBy", "name email role");
 
     const project = await Project.findById(
       task.project

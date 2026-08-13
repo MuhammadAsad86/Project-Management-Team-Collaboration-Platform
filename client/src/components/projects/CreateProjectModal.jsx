@@ -1,4 +1,5 @@
 import ProjectForm from "./ProjectForm";
+import { FiX, FiFolderPlus } from "react-icons/fi";
 
 const CreateProjectModal = ({
   isOpen,
@@ -10,30 +11,49 @@ const CreateProjectModal = ({
 }) => {
   if (!isOpen) return null;
 
+  const isEditing = Boolean(initialData && Object.keys(initialData).length > 0);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fade-in">
+      <div 
+        className="nf-depth-card w-full max-w-xl rounded-3xl border border-slate-200/80 bg-white shadow-2xl overflow-hidden flex flex-col"
+        style={{ padding: "32px 28px", gap: "24px", maxHeight: "90vh" }}
+      >
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">
-            {title}
-          </h2>
+        <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+          <div className="flex items-center" style={{ gap: "12px" }}>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20">
+              <FiFolderPlus className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col" style={{ gap: "2px" }}>
+              <h2 className="text-lg font-black text-slate-900 tracking-tight sm:text-xl" style={{ margin: 0 }}>
+                {title}
+              </h2>
+              <p className="text-xs font-medium text-slate-500" style={{ margin: 0 }}>
+                {isEditing 
+                  ? "Update project details, timelines, and assignments." 
+                  : "Configure a new project workspace and assign managers."}
+              </p>
+            </div>
+          </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="text-2xl leading-none text-gray-500 transition hover:text-black"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-all hover:bg-slate-200 hover:text-slate-800 active:scale-95 cursor-pointer"
           >
-            ×
+            <FiX className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Reusable Form */}
-        <ProjectForm
-          initialData={initialData}
-          onSubmit={onSubmit}
-          loading={loading}
-        />
+        {/* Scrollable Form Content Area */}
+        <div className="overflow-y-auto pr-1 flex-1 min-h-0">
+          <ProjectForm
+            initialData={initialData}
+            onSubmit={onSubmit}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   );

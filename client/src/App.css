@@ -1,184 +1,359 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* =========================================
+   NEXAFLOW APPLICATION UI UTILITIES
+   Presentation only, no business logic
+========================================= */
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+/* -----------------------------------------
+   BRAND
+----------------------------------------- */
+
+.nf-brand-gradient {
+  background: linear-gradient(
+    135deg,
+    #4f46e5 0%,
+    #7c3aed 100%
+  );
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+.nf-brand-orb {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.35;
 }
 
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+.nf-brand-orb-primary {
+  background: rgba(79, 70, 229, 0.35);
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+.nf-brand-orb-secondary {
+  background: rgba(124, 58, 237, 0.28);
 }
 
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+.nf-brand-orb-cyan {
+  background: rgba(6, 182, 212, 0.16);
 }
 
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
+/* -----------------------------------------
+   APP SURFACES
+----------------------------------------- */
 
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
+.nf-app-shell {
   width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+.nf-page-surface {
+  width: 100%;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.94)
+    );
+
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.06),
+    0 4px 16px rgba(15, 23, 42, 0.03);
+
+  overflow: hidden;
+}
+
+.nf-content-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* -----------------------------------------
+   SUBTLE 3D DEPTH
+----------------------------------------- */
+
+.nf-depth-card {
+  transform-style: preserve-3d;
+
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+.nf-depth-card:hover {
+  transform:
+    translateY(-4px)
+    perspective(1200px)
+    rotateX(1deg);
+
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.09),
+    0 8px 20px rgba(79, 70, 229, 0.06);
+}
+
+.nf-depth-soft {
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.05),
+    0 2px 8px rgba(15, 23, 42, 0.025);
+}
+
+.nf-depth-medium {
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.08),
+    0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.nf-depth-modal {
+  box-shadow:
+    0 32px 90px rgba(15, 23, 42, 0.18),
+    0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+/* -----------------------------------------
+   BRAND GLOW
+----------------------------------------- */
+
+.nf-glow-primary {
+  box-shadow:
+    0 0 0 1px rgba(79, 70, 229, 0.22),
+    0 10px 28px rgba(79, 70, 229, 0.16);
+}
+
+.nf-glow-violet {
+  box-shadow:
+    0 0 0 1px rgba(124, 58, 237, 0.2),
+    0 10px 28px rgba(124, 58, 237, 0.14);
+}
+
+/* -----------------------------------------
+   BADGES
+----------------------------------------- */
+
+.nf-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  min-height: 26px;
+  padding: 4px 10px;
+
+  border-radius: 999px;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+
+  white-space: nowrap;
+}
+
+.nf-badge-primary {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4338ca;
+  border: 1px solid rgba(79, 70, 229, 0.1);
+}
+
+.nf-badge-violet {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.nf-badge-cyan {
+  background: rgba(6, 182, 212, 0.1);
+  color: #0e7490;
+  border: 1px solid rgba(6, 182, 212, 0.1);
+}
+
+.nf-badge-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.12);
+}
+
+.nf-badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.14);
+}
+
+.nf-badge-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.12);
+}
+
+.nf-badge-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.nf-badge-neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* -----------------------------------------
+   INTERACTIVE SURFACES
+----------------------------------------- */
+
+.nf-interactive {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.nf-interactive:hover {
+  transform: translateY(-2px);
+}
+
+.nf-pressable:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* -----------------------------------------
+   PAGE ENTRANCE
+----------------------------------------- */
+
+@keyframes nf-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+}
+
+.nf-page-enter {
+  animation: nf-fade-in-up 320ms ease both;
+}
+
+/* -----------------------------------------
+   PANELS / DROPDOWNS
+----------------------------------------- */
+
+@keyframes nf-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nf-panel-enter {
+  animation: nf-panel-in 180ms ease both;
+  transform-origin: top right;
+}
+
+/* -----------------------------------------
+   MOBILE SIDEBAR
+----------------------------------------- */
+
+@keyframes nf-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.nf-drawer-enter {
+  animation: nf-slide-in-left 260ms ease both;
+}
+
+/* -----------------------------------------
+   FLOATING / SUBTLE 3D MOTION
+----------------------------------------- */
+
+@keyframes nf-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.nf-float {
+  animation: nf-float 5s ease-in-out infinite;
+}
+
+/* -----------------------------------------
+   RESPONSIVE SAFETY
+----------------------------------------- */
+
+@media (max-width: 1024px) {
+  .nf-page-surface {
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nf-app-shell {
+    width: 100%;
+  }
+
+  .nf-page-surface {
+    border-radius: 18px;
+  }
+
+  .nf-depth-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 480px) {
+  .nf-page-surface {
+    border-radius: 16px;
+  }
+
+  .nf-badge {
+    min-height: 24px;
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+}
+
+/* -----------------------------------------
+   REDUCED MOTION
+----------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-page-enter,
+  .nf-panel-enter,
+  .nf-drawer-enter,
+  .nf-float {
+    animation: none !important;
+  }
+
+  .nf-depth-card,
+  .nf-interactive {
+    transition: none !important;
+  }
+
+  .nf-depth-card:hover,
+  .nf-interactive:hover {
+    transform: none;
   }
 }
