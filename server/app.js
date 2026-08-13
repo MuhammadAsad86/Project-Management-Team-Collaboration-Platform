@@ -18,7 +18,7 @@ const checkUpcomingDeadlines = require("./utils/deadlineNotification");
 
 const app = express();
 
-// Required for Vercel proxy
+// Required for Vercel proxy and express-rate-limit
 app.set("trust proxy", 1);
 
 // Authentication rate limiter
@@ -57,16 +57,24 @@ app.use(
 app.use(helmet());
 
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
+
 app.use(cookieParser());
 
 // API Routes
 app.use("/api/auth", authLimiter, authRoutes);
+
 app.use("/api/projects", projectRoutes);
+
 app.use("/api/tasks", taskRoutes);
+
 app.use("/api/tasks", commentRoutes);
+
 app.use("/api/admin", adminRoutes);
+
 app.use("/api/users", userRoutes);
+
 app.use("/api/notifications", notificationRoutes);
 
 // Root Route
@@ -78,10 +86,10 @@ app.get("/", (req, res) => {
 });
 
 // Deadline notification checker
-// Run once when server starts.
+// Run once when server starts
 checkUpcomingDeadlines();
 
-// Run every hour.
+// Run every hour
 setInterval(() => {
   checkUpcomingDeadlines();
 }, 60 * 60 * 1000);
