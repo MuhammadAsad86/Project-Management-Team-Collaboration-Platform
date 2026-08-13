@@ -40,18 +40,24 @@ const allowedOrigins = [
 ];
 
 // CORS configuration
+// Vercel truncates/aliases long project names for their auto-generated
+// domains (e.g. "collaboration-platform-4jpsxe4yq.vercel.app" vs the
+// production alias "collaborati-nine.vercel.app" / "collaborati-lac.vercel.app"),
+// so a regex anchored to the full untruncated name misses real production
+// and preview domains. Match on the stable "project-management-team-collaborat"
+// prefix instead, whatever suffix Vercel appends.
 app.use(
   cors({
     origin: (origin, callback) => {
-      const isAllowedVercelPreview =
-        /^https:\/\/project-management-team-collaboration-platform-[a-z0-9]+\.vercel\.app$/.test(
+      const isAllowedVercelDomain =
+        /^https:\/\/project-management-team-collaborat[a-z0-9-]*\.vercel\.app$/.test(
           origin || ""
         );
 
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        isAllowedVercelPreview
+        isAllowedVercelDomain
       ) {
         callback(null, true);
       } else {
