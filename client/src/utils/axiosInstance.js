@@ -1,13 +1,12 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "https://project-management-team-collaborati-lac.vercel.app/",
+  baseURL: "https://project-management-team-collaborati-lac.vercel.app/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Add JWT token automatically
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
