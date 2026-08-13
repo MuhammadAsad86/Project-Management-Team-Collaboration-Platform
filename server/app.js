@@ -37,7 +37,7 @@ const authLimiter = rateLimit({
 // Allowed frontend origins
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://project-management-team-collaborati-nine.vercel.app",
+  "https://project-management-team-collaboration-platform-qie6di7d1.vercel.app",
 ];
 
 // Middlewares
