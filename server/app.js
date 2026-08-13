@@ -139,4 +139,4 @@ app.get("/api/cron/check-deadlines", async (req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-module.exports = app;s
+module.exports = app;
